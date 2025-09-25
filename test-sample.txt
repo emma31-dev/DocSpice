@@ -1,0 +1,23 @@
+// Test sample for DocSpice - paste this into the app to test functionality
+
+`The Art of Urban Photography
+
+Urban photography is a captivating form of visual storytelling that captures the essence of city life. From towering skyscrapers that pierce the sky to intimate street scenes that reveal human emotion, urban photographers have the unique opportunity to document the ever-changing landscape of our metropolitan environments.
+
+The key to successful urban photography lies in understanding light and shadow. Early morning and late evening hours provide the most dramatic lighting conditions, when the sun casts long shadows between buildings and creates a warm, golden glow across concrete and glass surfaces. These moments transform ordinary city streets into extraordinary visual experiences.
+
+Street photography, a subset of urban photography, focuses on candid moments of human interaction within the urban environment. Whether it's a businessman hurrying to catch a train, children playing in a neighborhood park, or elderly residents gathering at a local café, these unguarded moments tell the true story of city life.
+
+Architecture plays a crucial role in urban photography. Modern cities offer a fascinating contrast between historical buildings and contemporary structures. The interplay between old brick facades and sleek glass towers creates dynamic compositions that speak to the evolution of urban spaces over time.
+
+Technology has revolutionized urban photography in recent years. Digital cameras with advanced low-light capabilities allow photographers to capture stunning images even in challenging lighting conditions. Drone photography has opened up entirely new perspectives, enabling artists to showcase cities from breathtaking aerial viewpoints that were previously impossible to achieve.
+
+The challenge of urban photography lies not just in technical execution, but in finding fresh perspectives in familiar environments. Successful urban photographers develop a keen eye for detail, noticing the small moments and unique angles that others might overlook. They understand that great urban photography is about more than just documenting buildings – it's about capturing the soul and energy of urban life.`
+
+// This sample text should generate images related to:
+// - Urban photography
+// - City skylines
+// - Street scenes
+// - Architecture
+// - Modern buildings
+// - Photography equipment

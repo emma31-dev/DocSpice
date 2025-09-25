@@ -1,0 +1,24 @@
+{
+  "name": "DocSpice - Transform Text into Beautiful Visual Stories",
+  "short_name": "DocSpice",
+  "description": "Turn your plain text into stunning illustrated articles with AI-powered image matching",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#3B82F6",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/docspice-logo.svg", 
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ],
+  "categories": ["productivity", "writing", "design"],
+  "lang": "en"
+}
