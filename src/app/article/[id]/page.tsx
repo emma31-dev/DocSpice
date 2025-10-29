@@ -217,9 +217,10 @@ export default function ArticlePage() {
         {/* Article Body */}
         <div className="prose prose-lg max-w-none">
           {paragraphs.map((paragraph, index) => {
-            // Insert images strategically throughout the content
-            const shouldInsertImage = (index + 1) % 3 === 0 && article.images[Math.floor((index + 1) / 3)];
-            const imageToInsert = shouldInsertImage ? article.images[Math.floor((index + 1) / 3)] : null;
+            // Calculate which image to use (skip hero image at index 0)
+            const imageIndex = Math.floor(index / 2) + 1;
+            const shouldInsertImage = (index + 1) % 2 === 0 && imageIndex < article.images.length;
+            const imageToInsert = shouldInsertImage ? article.images[imageIndex] : null;
 
             return (
               <div key={index}>
@@ -232,7 +233,7 @@ export default function ArticlePage() {
                     <div className="relative h-80 rounded-xl overflow-hidden shadow-lg group">
                       <Image
                         src={imageToInsert.urls.regular}
-                        alt={imageToInsert.alt_description || `Image ${Math.floor((index + 1) / 3) + 1}`}
+                        alt={imageToInsert.alt_description || `Image ${imageIndex}`}
                         fill
                         className="object-cover transition-all duration-500 group-hover:scale-105"
                         onLoad={() => handleImageLoad(`inline-${index}`)}
@@ -340,7 +341,7 @@ export default function ArticlePage() {
 
         {/* Call to Action */}
         <div className="mt-16 text-center">
-          <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-8">
+          <div className="bg-gradient-to-r from-blue-50 to-sky-50 rounded-2xl p-8">
             <h3 className="text-2xl font-bold text-gray-800 mb-4">
               Create Your Own Beautiful Article
             </h3>
@@ -349,7 +350,7 @@ export default function ArticlePage() {
             </p>
             <button
               onClick={() => router.push('/')}
-              className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+              className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-blue-600 to-sky-400 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
             >
               <ExternalLink className="h-5 w-5" />
               Try DocSpice Now

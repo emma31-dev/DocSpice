@@ -116,26 +116,34 @@ export async function GET(request: NextRequest) {
 }
 
 function generateTitle(text: string, keywords: any[]): string {
-  // Try to extract title from first sentence
-  const sentences = text.split(/[.!?]+/).map(s => s.trim()).filter(s => s.length > 0);
+  const paragraphs = text.split('\n').map(p => p.trim()).filter(p => p.length > 10);
+  const searchText = paragraphs.slice(0, 2).join(' ').toLowerCase();
   
-  if (sentences.length > 0) {
-    const firstSentence = sentences[0];
-    
-    // If first sentence is short and looks like a title, use it
-    if (firstSentence.length < 100 && !firstSentence.toLowerCase().includes('the following')) {
-      return firstSentence;
+  // Look for phrases starting with 'the' followed by descriptive words
+  const thePattern = /\bthe\s+([a-z]+(?:\s+[a-z]+){0,3})\s+(?:woman|man|mother|father|farmer|nurse|teacher|doctor|widow|child|boy|girl|student|worker|person|family|couple)/g;
+  
+  let match;
+  while ((match = thePattern.exec(searchText)) !== null) {
+    const phrase = `The ${match[1].split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}`;
+    const words = phrase.split(' ');
+    if (words.length >= 2 && words.length <= 5) {
+      return phrase;
     }
   }
-
-  // Generate title from keywords
+  
+  // Fallback: look for any 'the' + 2-4 words
+  const simplePattern = /\bthe\s+([a-z]+(?:\s+[a-z]+){1,3})/g;
+  while ((match = simplePattern.exec(searchText)) !== null) {
+    const phrase = `The ${match[1].split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}`;
+    const words = phrase.split(' ');
+    if (words.length >= 3 && words.length <= 5) {
+      return phrase;
+    }
+  }
+  
+  // Final fallback to keywords
   if (keywords.length > 0) {
-    const topKeywords = keywords.slice(0, 3).map(k => k.word);
-    const capitalizedKeywords = topKeywords.map(word => 
-      word.charAt(0).toUpperCase() + word.slice(1)
-    );
-    
-    return `Exploring ${capitalizedKeywords.join(', ')}`;
+    return keywords.slice(0, 2).map(k => k.word.charAt(0).toUpperCase() + k.word.slice(1)).join(' ');
   }
 
   return 'Untitled Article';
