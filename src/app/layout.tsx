@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -12,6 +12,10 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+export const viewport: Viewport = {
+  themeColor: '#3B82F6',
+};
+
 export const metadata: Metadata = {
   title: "DocSpice - Transform Text into Beautiful Visual Stories",
   description: "Turn your plain text into stunning illustrated articles with AI-powered image matching. DocSpice analyzes your content and adds beautiful, relevant images from Unsplash.",
@@ -21,7 +25,7 @@ export const metadata: Metadata = {
     apple: '/favicon.svg',
   },
   manifest: '/manifest.json',
-  themeColor: '#3B82F6',
+
   openGraph: {
     title: "DocSpice - Transform Text into Beautiful Visual Stories",
     description: "Turn your plain text into stunning illustrated articles with AI-powered image matching.",

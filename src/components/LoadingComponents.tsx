@@ -111,8 +111,7 @@ export const LoadingButton = ({
   loadingText?: string;
   children: React.ReactNode;
   className?: string;
-  [key: string]: any;
-}) => {
+} & React.ButtonHTMLAttributes<HTMLButtonElement>) => {
   return (
     <button
       className={`inline-flex items-center justify-center gap-3 px-8 py-4 bg-gradient-to-r from-blue-600 to-sky-400 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none ${className}`}
@@ -236,8 +235,7 @@ export const LoadingImage = ({
   fallbackSrc?: string;
   onLoad?: () => void;
   onError?: () => void;
-  [key: string]: any;
-}) => {
+} & React.ImgHTMLAttributes<HTMLImageElement>) => {
   const [isLoading, setIsLoading] = React.useState(true);
   const [hasError, setHasError] = React.useState(false);
   const [currentSrc, setCurrentSrc] = React.useState(src);

@@ -8,6 +8,7 @@ import { DocSpiceIcon } from '@/components/DocSpiceIcon';
 
 export default function Home() {
   const [text, setText] = useState('');
+  const [title, setTitle] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState(0);
   const [showProgress, setShowProgress] = useState(false);
@@ -42,7 +43,7 @@ export default function Home() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({ text, title }),
       });
 
       if (response.ok) {
@@ -106,6 +107,26 @@ export default function Home() {
           {/* Hide form when showing progress */}
           <div className={`transition-all duration-500 ${showProgress ? 'opacity-50 pointer-events-none scale-95' : 'opacity-100'}`}>
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Title Input */}
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden mb-6">
+              <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                <div className="flex items-center gap-2">
+                  <PenTool className="h-5 w-5 text-gray-600" />
+                  <h2 className="text-lg font-semibold text-gray-800">Article Title</h2>
+                </div>
+              </div>
+              <div className="p-6">
+                <input
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="Enter your article title (optional - we'll generate one if left empty)"
+                  className="w-full border-0 outline-none text-gray-700 placeholder-gray-400 text-lg font-medium"
+                  disabled={isLoading}
+                />
+              </div>
+            </div>
+
             {/* Text Input Area */}
             <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
               <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">

@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { analyzeText, generateImageSearchQueries } from '@/lib/textAnalysis';
-import { searchImagesForQueries, getFallbackImages } from '@/lib/unsplash';
+import { analyzeText, generateImageSearchQueries, KeywordData } from '@/lib/textAnalysis';
+import { searchImagesForQueries, getFallbackImages, UnsplashImage } from '@/lib/unsplash';
 import { randomUUID } from 'crypto';
 
 export interface ArticleData {
   id: string;
   title: string;
   content: string;
-  images: any[];
+  images: UnsplashImage[];
   keywords: string[];
   themes: string[];
   createdAt: string;
@@ -19,7 +19,7 @@ const articles = new Map<string, ArticleData>();
 
 export async function POST(request: NextRequest) {
   try {
-    const { text } = await request.json();
+    const { text, title: providedTitle } = await request.json();
 
     if (!text || text.trim().length < 50) {
       return NextResponse.json(
@@ -58,8 +58,8 @@ export async function POST(request: NextRequest) {
     
     console.log(`Using ${imageSource} images for article generation`);
 
-    // Generate a title from the first sentence or keywords
-    const title = generateTitle(text, analysis.keywords);
+    // Use provided title or generate one
+    const title = providedTitle?.trim() || generateTitle(text, analysis.keywords);
 
     // Create article data
     const articleId = randomUUID();
@@ -115,7 +115,7 @@ export async function GET(request: NextRequest) {
   return NextResponse.json(article);
 }
 
-function generateTitle(text: string, keywords: any[]): string {
+function generateTitle(text: string, keywords: KeywordData[]): string {
   const paragraphs = text.split('\n').map(p => p.trim()).filter(p => p.length > 10);
   const searchText = paragraphs.slice(0, 2).join(' ').toLowerCase();
   

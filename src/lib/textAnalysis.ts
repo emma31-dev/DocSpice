@@ -1,5 +1,3 @@
-import natural from 'natural';
-
 // Common stop words to filter out
 const stopWords = new Set([
   'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with',

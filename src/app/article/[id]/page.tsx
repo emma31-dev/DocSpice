@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { ArrowLeft, Clock, Tag, Palette, ExternalLink, Sparkles } from 'lucide-react';
 import { ArticleData } from '@/app/api/generate/route';
-import { Spinner, TextSkeleton, ImageSkeleton, LoadingImage } from '@/components/LoadingComponents';
+import { Spinner, TextSkeleton, ImageSkeleton } from '@/components/LoadingComponents';
 import { DocSpiceIcon } from '@/components/DocSpiceIcon';
 
 export default function ArticlePage() {
@@ -41,7 +41,7 @@ export default function ArticlePage() {
         } else {
           setError('Article not found');
         }
-      } catch (err) {
+      } catch {
         setError('Failed to load article');
       } finally {
         setTimeout(() => setLoading(false), 300); // Small delay for smooth transition
