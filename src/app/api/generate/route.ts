@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { analyzeText, generateImageSearchQueries, KeywordData } from '@/lib/textAnalysis';
+import { analyzeText, generateImageSearchQueries, generateOptimizedImageSearchQueries, KeywordData } from '@/lib/textAnalysis';
 import { searchImagesForQueries, getFallbackImages, UnsplashImage } from '@/lib/unsplash';
 import { randomUUID } from 'crypto';
 
@@ -31,8 +31,14 @@ export async function POST(request: NextRequest) {
     // Analyze the text
     const analysis = await analyzeText(text);
     
-    // Generate image search queries
-    const imageQueries = generateImageSearchQueries(analysis);
+    // Generate image search queries using optimized function
+    let imageQueries: string[];
+    try {
+      imageQueries = generateOptimizedImageSearchQueries(analysis);
+    } catch (error) {
+      console.error('Error with optimized query generation, falling back to basic:', error);
+      imageQueries = generateImageSearchQueries(analysis);
+    }
     
     // Search for images
     let images;
