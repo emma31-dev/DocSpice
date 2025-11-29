@@ -96,16 +96,13 @@ export default function Home() {
       {/* Main Content */}
       <main className="px-6 pb-12">
         <div className="max-w-4xl mx-auto">
-          {/* Show progress when loading */}
+          {/* Show progress modal when loading */}
           {showProgress && (
             <ArticleGenerationProgress 
               currentStep={loadingStep}
-              className="mb-8"
             />
           )}
           
-          {/* Hide form when showing progress */}
-          <div className={`transition-all duration-500 ${showProgress ? 'opacity-50 pointer-events-none scale-95' : 'opacity-100'}`}>
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Title Input */}
             <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden mb-6">
@@ -198,7 +195,6 @@ export default function Home() {
               </LoadingButton>
             </div>
           </form>
-          </div>
         </div>
       </main>
     </div>

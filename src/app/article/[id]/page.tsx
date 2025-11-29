@@ -129,30 +129,46 @@ export default function ArticlePage() {
   }
 
   const paragraphs = article.content.split('\n').filter(p => p.trim().length > 0);
-  const heroImage = article.images[0];
+  // Use dedicated hero image if available, otherwise fall back to first content image
+  const heroImage = article.heroImage || article.images[0];
+  // Content images are all images if no dedicated hero, or all images if hero exists
+  const contentImages = article.heroImage ? article.images : article.images.slice(1);
 
-  // Share functionality
+  // Share functionality with catchy templates
   const shareUrl = typeof window !== 'undefined' ? window.location.href : '';
   const shareTitle = article.title;
-  const shareText = `Check out this article: ${article.title}`;
+  
+  // Platform-specific catchy share templates
+  const getShareTemplate = (platform: string) => {
+    const templates = {
+      whatsapp: `✨ Just transformed my text into this stunning visual story with DocSpice! 📖✨\n\n"${shareTitle}"\n\nCheck it out: ${shareUrl}\n\n🎨 Try it yourself at DocSpice!`,
+      
+      facebook: `I just created this beautifully illustrated article with DocSpice! 🎨📚\n\n"${shareTitle}"\n\nDocSpice turned my plain text into a visual masterpiece with AI-powered image matching. You've got to see this! ✨`,
+      
+      twitter: `✨ Just created "${shareTitle}" with @DocSpice! 🎨\n\nTurned plain text into a stunning visual story in seconds. Check it out! 👇\n\n#ContentCreation #VisualStorytelling`,
+      
+      instagram: `✨ Created with DocSpice ✨\n\n"${shareTitle}"\n\n🎨 Transformed plain text into this beautiful visual story\n📖 AI-powered image matching\n✨ Try it yourself!\n\n${shareUrl}\n\n#DocSpice #VisualStorytelling #ContentCreation #AIArt`
+    };
+    
+    return templates[platform as keyof typeof templates] || `Check out "${shareTitle}" - Created with DocSpice! ${shareUrl}`;
+  };
 
   const handleShare = (platform: string) => {
+    const shareTemplate = getShareTemplate(platform);
     const encodedUrl = encodeURIComponent(shareUrl);
-    const encodedTitle = encodeURIComponent(shareTitle);
-    const encodedText = encodeURIComponent(shareText);
+    const encodedText = encodeURIComponent(shareTemplate);
 
     const shareUrls: { [key: string]: string } = {
-      whatsapp: `https://wa.me/?text=${encodedText}%20${encodedUrl}`,
-      facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
-      twitter: `https://twitter.com/intent/tweet?text=${encodedText}&url=${encodedUrl}`,
-      // Instagram doesn't support direct web sharing, so we'll copy to clipboard
-      instagram: shareUrl,
+      whatsapp: `https://wa.me/?text=${encodedText}`,
+      facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}&quote=${encodeURIComponent(getShareTemplate('facebook'))}`,
+      twitter: `https://twitter.com/intent/tweet?text=${encodedText}`,
+      instagram: shareTemplate, // Full template for clipboard
     };
 
     if (platform === 'instagram') {
-      // Copy to clipboard for Instagram
-      navigator.clipboard.writeText(shareUrl).then(() => {
-        alert('Link copied! You can now paste it in Instagram.');
+      // Copy full template to clipboard for Instagram
+      navigator.clipboard.writeText(shareTemplate).then(() => {
+        alert('✨ Caption copied! Paste it in Instagram with your screenshot or link. 📸');
       });
     } else {
       window.open(shareUrls[platform], '_blank', 'width=600,height=400');
@@ -208,7 +224,7 @@ export default function ArticlePage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <Palette className="h-4 w-4" />
-                  <span>{article.images.length} images</span>
+                  <span>{contentImages.length + (article.heroImage ? 1 : 0)} images</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Sparkles className="h-4 w-4 animate-pulse" />
@@ -245,10 +261,10 @@ export default function ArticlePage() {
         {/* Article Body */}
         <div className="prose prose-lg max-w-none">
           {paragraphs.map((paragraph, index) => {
-            // Calculate which image to use (skip hero image at index 0)
-            const imageIndex = Math.floor(index / 2) + 1;
-            const shouldInsertImage = (index + 1) % 2 === 0 && imageIndex < article.images.length;
-            const imageToInsert = shouldInsertImage ? article.images[imageIndex] : null;
+            // Calculate which image to use from content images
+            const imageIndex = Math.floor(index / 2);
+            const shouldInsertImage = (index + 1) % 2 === 0 && imageIndex < contentImages.length;
+            const imageToInsert = shouldInsertImage ? contentImages[imageIndex] : null;
             const isImageOnLeft = imageIndex % 2 === 0;
 
             return (
@@ -351,11 +367,11 @@ export default function ArticlePage() {
         )}
 
         {/* Image Gallery */}
-        {article.images.length > 1 && (
+        {contentImages.length > 0 && (
           <div className="mt-12 pt-8 border-t border-gray-200">
             <h3 className="text-lg font-semibold text-gray-800 mb-6 animate-fade-in">Image Gallery</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {article.images.slice(1).map((image, index) => (
+              {contentImages.map((image, index) => (
                 <div key={index} className="group animate-fade-in-up" style={{animationDelay: `${index * 100}ms`}}>
                   <div className="relative h-48 rounded-lg overflow-hidden shadow-md group-hover:shadow-lg transition-all duration-300">
                     <Image

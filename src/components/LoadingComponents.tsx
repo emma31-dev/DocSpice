@@ -130,7 +130,7 @@ export const LoadingButton = ({
   );
 };
 
-// Article generation progress component
+// Article generation progress modal component
 export const ArticleGenerationProgress = ({ 
   currentStep, 
   className = '' 
@@ -148,71 +148,80 @@ export const ArticleGenerationProgress = ({
   const stepIcons = [Brain, FileText, ImageIcon, Sparkles];
 
   return (
-    <div className={`bg-white rounded-2xl p-8 shadow-lg border border-gray-200 ${className}`}>
-      <div className="text-center mb-6">
-        <h3 className="text-xl font-semibold text-gray-800 mb-2">
-          Creating Your Beautiful Article
-        </h3>
-        <p className="text-gray-600">
-          Please wait while we transform your content...
-        </p>
-      </div>
+    <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 ${className}`}>
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-fade-in"></div>
+      
+      {/* Modal */}
+      <div className="relative bg-white rounded-2xl p-8 shadow-2xl border border-gray-200 max-w-2xl w-full animate-fade-in-up">
+        <div className="text-center mb-6">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-sky-400 rounded-full mb-4">
+            <Sparkles className="h-8 w-8 text-white animate-pulse" />
+          </div>
+          <h3 className="text-2xl font-bold text-gray-800 mb-2">
+            Creating Your Beautiful Article
+          </h3>
+          <p className="text-gray-600">
+            Please wait while we transform your content...
+          </p>
+        </div>
 
-      <ProgressIndicator 
-        currentStep={currentStep} 
-        totalSteps={steps.length}
-        steps={steps}
-        className="mb-6"
-      />
+        <ProgressIndicator 
+          currentStep={currentStep} 
+          totalSteps={steps.length}
+          steps={steps}
+          className="mb-6"
+        />
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {steps.map((step, index) => {
-          const Icon = stepIcons[index];
-          const isActive = index === currentStep;
-          const isCompleted = index < currentStep;
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {steps.map((step, index) => {
+            const Icon = stepIcons[index];
+            const isActive = index === currentStep;
+            const isCompleted = index < currentStep;
 
-          return (
-            <div
-              key={index}
-              className={`text-center p-4 rounded-lg transition-all duration-300 ${
-                isActive 
-                  ? 'bg-blue-50 border-2 border-blue-200 scale-105' 
-                  : isCompleted
-                  ? 'bg-green-50 border-2 border-green-200'
-                  : 'bg-gray-50 border-2 border-gray-200'
-              }`}
-            >
-              <div className={`mx-auto mb-2 p-2 rounded-full w-12 h-12 flex items-center justify-center ${
-                isActive
-                  ? 'bg-blue-100 text-blue-600'
-                  : isCompleted  
-                  ? 'bg-green-100 text-green-600'
-                  : 'bg-gray-100 text-gray-400'
-              }`}>
-                {isActive ? (
-                  <Spinner size="sm" />
-                ) : (
-                  <Icon className="h-6 w-6" />
-                )}
+            return (
+              <div
+                key={index}
+                className={`text-center p-4 rounded-lg transition-all duration-300 ${
+                  isActive 
+                    ? 'bg-blue-50 border-2 border-blue-200 scale-105' 
+                    : isCompleted
+                    ? 'bg-green-50 border-2 border-green-200'
+                    : 'bg-gray-50 border-2 border-gray-200'
+                }`}
+              >
+                <div className={`mx-auto mb-2 p-2 rounded-full w-12 h-12 flex items-center justify-center ${
+                  isActive
+                    ? 'bg-blue-100 text-blue-600'
+                    : isCompleted  
+                    ? 'bg-green-100 text-green-600'
+                    : 'bg-gray-100 text-gray-400'
+                }`}>
+                  {isActive ? (
+                    <Spinner size="sm" />
+                  ) : (
+                    <Icon className="h-6 w-6" />
+                  )}
+                </div>
+                <p className={`text-sm font-medium ${
+                  isActive 
+                    ? 'text-blue-800' 
+                    : isCompleted
+                    ? 'text-green-800' 
+                    : 'text-gray-600'
+                }`}>
+                  {step}
+                </p>
               </div>
-              <p className={`text-sm font-medium ${
-                isActive 
-                  ? 'text-blue-800' 
-                  : isCompleted
-                  ? 'text-green-800' 
-                  : 'text-gray-600'
-              }`}>
-                {step}
-              </p>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
 
-      <div className="mt-6 text-center">
-        <div className="inline-flex items-center space-x-2 text-gray-500">
-          <Sparkles className="h-4 w-4 animate-pulse" />
-          <span className="text-sm">Adding the perfect images to your story...</span>
+        <div className="mt-6 text-center">
+          <div className="inline-flex items-center space-x-2 text-gray-500">
+            <Sparkles className="h-4 w-4 animate-pulse" />
+            <span className="text-sm">Adding the perfect images to your story...</span>
+          </div>
         </div>
       </div>
     </div>

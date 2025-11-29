@@ -82,14 +82,29 @@ export async function searchImagesForQueries(queries: string[]): Promise<Unsplas
     }
     
     try {
-      const images = await searchImages(query, 3);
+      const images = await searchImages(query, 5); // Fetch 5 to have options
       
       if (images.length > 0) {
-        // Filter out duplicates and add to collection
-        const uniqueImages = images.filter(img => !seenIds.has(img.id));
-        uniqueImages.forEach(img => seenIds.add(img.id));
-        allImages.push(...uniqueImages);
-        console.log(`Added ${uniqueImages.length} unique images from query "${query}"`);
+        // Use smart selection to pick the best image from results
+        // Prefer 2nd or 3rd result over 1st
+        const bestImage = selectBestImage(images, 1);
+        
+        if (bestImage && !seenIds.has(bestImage.id)) {
+          seenIds.add(bestImage.id);
+          allImages.push(bestImage);
+          console.log(`Added best image from query "${query}"`);
+        } else if (bestImage) {
+          console.log(`Best image from "${query}" was duplicate, trying alternatives`);
+          // Try other images if best was duplicate
+          for (const img of images) {
+            if (!seenIds.has(img.id)) {
+              seenIds.add(img.id);
+              allImages.push(img);
+              console.log(`Added alternative image from query "${query}"`);
+              break;
+            }
+          }
+        }
       } else {
         console.log(`No images found for query "${query}"`);
       }
@@ -106,6 +121,107 @@ export async function searchImagesForQueries(queries: string[]): Promise<Unsplas
   const finalImages = allImages.slice(0, 10); // Return maximum 10 images
   console.log(`Final image collection: ${finalImages.length} images`);
   return finalImages;
+}
+
+/**
+ * Select the best image from search results based on quality metrics
+ * Considers aspect ratio, resolution, and description quality
+ */
+export function selectBestImage(images: UnsplashImage[], preferredIndex: number = 1): UnsplashImage | null {
+  if (images.length === 0) return null;
+  if (images.length === 1) return images[0];
+  
+  // Score each image
+  const scoredImages = images.map((image, index) => {
+    let score = 0;
+    
+    // 1. Aspect ratio score (prefer landscape for hero images)
+    const aspectRatio = image.width / image.height;
+    if (aspectRatio >= 1.5 && aspectRatio <= 2.5) {
+      score += 30; // Ideal landscape ratio
+    } else if (aspectRatio >= 1.2 && aspectRatio < 1.5) {
+      score += 20; // Acceptable landscape
+    } else if (aspectRatio > 2.5) {
+      score += 10; // Too wide
+    } else {
+      score += 5; // Portrait or square (less ideal for hero)
+    }
+    
+    // 2. Resolution score (prefer higher resolution)
+    const totalPixels = image.width * image.height;
+    if (totalPixels >= 2000000) { // 2MP+
+      score += 25;
+    } else if (totalPixels >= 1000000) { // 1MP+
+      score += 15;
+    } else {
+      score += 5;
+    }
+    
+    // 3. Description quality score
+    const description = image.description || image.alt_description || '';
+    if (description.length > 50) {
+      score += 20; // Detailed description
+    } else if (description.length > 20) {
+      score += 10; // Some description
+    } else if (description.length > 0) {
+      score += 5; // Minimal description
+    }
+    
+    // 4. Position bonus (prefer 2nd and 3rd results slightly over 1st)
+    if (index === preferredIndex) {
+      score += 15; // Preferred position
+    } else if (index === preferredIndex - 1 || index === preferredIndex + 1) {
+      score += 10; // Adjacent to preferred
+    } else if (index === 0) {
+      score += 5; // First result (often too generic)
+    }
+    
+    return { image, score, index };
+  });
+  
+  // Sort by score (descending)
+  scoredImages.sort((a, b) => b.score - a.score);
+  
+  console.log('Image selection scores:', scoredImages.map(s => ({
+    index: s.index,
+    score: s.score,
+    aspectRatio: (s.image.width / s.image.height).toFixed(2),
+    resolution: `${s.image.width}x${s.image.height}`,
+    hasDescription: !!(s.image.description || s.image.alt_description)
+  })));
+  
+  // Return the highest scored image
+  return scoredImages[0].image;
+}
+
+/**
+ * Search for the best hero image using smart selection
+ * Fetches multiple results and picks the best one
+ */
+export async function searchBestHeroImage(query: string): Promise<UnsplashImage | null> {
+  try {
+    console.log(`Searching for best hero image with query: "${query}"`);
+    
+    // Fetch 5 results to have options
+    const images = await searchImages(query, 5);
+    
+    if (images.length === 0) {
+      console.log('No images found for hero query');
+      return null;
+    }
+    
+    // Select the best image (prefer 2nd result by default)
+    const bestImage = selectBestImage(images, 1);
+    
+    if (bestImage) {
+      console.log(`Selected best hero image (aspect ratio: ${(bestImage.width / bestImage.height).toFixed(2)})`);
+    }
+    
+    return bestImage;
+  } catch (error) {
+    console.error('Error searching for best hero image:', error);
+    return null;
+  }
 }
 
 export function getFallbackImages(): UnsplashImage[] {

@@ -113,10 +113,59 @@ export function extractKeywords(text: string, maxKeywords: number = 10): Keyword
   return keywords;
 }
 
+// Enhanced entity extraction with person name detection
+export interface EntityData {
+  text: string;
+  type: 'person' | 'place' | 'organization' | 'other';
+  confidence: number;
+}
+
 export function extractEntities(text: string): string[] {
+  const entityData = extractEntitiesWithTypes(text);
+  return entityData.map(e => e.text);
+}
+
+export function extractEntitiesWithTypes(text: string): EntityData[] {
   // Simple named entity extraction using capitalization patterns
   const sentences = text.split(/[.!?]+/);
-  const entities = new Set<string>();
+  const entities = new Map<string, EntityData>();
+
+  // Common person name patterns and indicators
+  const personNamePatterns = [
+    /\b(Mr|Mrs|Ms|Dr|Professor|Sir|Lady)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)/g,
+    /\b([A-Z][a-z]+)\s+(?:said|told|asked|replied|explained|mentioned|thought|felt|walked|ran|went|came|looked|saw)/g,
+    /\b([A-Z][a-z]+)\s+(?:was|were|is|are)\s+(?:a|an|the)?\s*(?:man|woman|person|boy|girl|child|farmer|teacher|doctor|nurse|mother|father|parent)/g
+  ];
+
+  // Common first names (simplified list)
+  const commonFirstNames = new Set([
+    'larry', 'john', 'mary', 'james', 'patricia', 'robert', 'jennifer', 'michael', 'linda',
+    'william', 'elizabeth', 'david', 'barbara', 'richard', 'susan', 'joseph', 'jessica',
+    'thomas', 'sarah', 'charles', 'karen', 'christopher', 'nancy', 'daniel', 'lisa',
+    'matthew', 'betty', 'anthony', 'helen', 'mark', 'sandra', 'donald', 'donna',
+    'steven', 'carol', 'paul', 'ruth', 'andrew', 'sharon', 'joshua', 'michelle',
+    'kenneth', 'laura', 'kevin', 'sarah', 'brian', 'kimberly', 'george', 'deborah',
+    'edward', 'dorothy', 'ronald', 'lisa', 'timothy', 'nancy', 'jason', 'karen',
+    'jeffrey', 'betty', 'ryan', 'helen', 'jacob', 'sandra', 'gary', 'donna',
+    'nicholas', 'carol', 'eric', 'ruth', 'jonathan', 'sharon', 'stephen', 'michelle',
+    'anna', 'emma', 'olivia', 'sophia', 'ava', 'isabella', 'mia', 'abigail',
+    'emily', 'charlotte', 'harper', 'madison', 'amelia', 'elizabeth', 'sofia', 'evelyn'
+  ]);
+
+  // Extract entities using patterns
+  personNamePatterns.forEach(pattern => {
+    let match;
+    while ((match = pattern.exec(text)) !== null) {
+      const name = match[1] || match[2];
+      if (name && name.length > 1) {
+        entities.set(name, {
+          text: name,
+          type: 'person',
+          confidence: 0.8
+        });
+      }
+    }
+  });
 
   sentences.forEach(sentence => {
     // Look for capitalized words that aren't at the beginning of sentences
@@ -127,7 +176,22 @@ export function extractEntities(text: string): string[] {
           /^[A-Z][a-z]+/.test(cleanWord) && 
           index > 0 && // Not the first word of the sentence
           !stopWords.has(cleanWord.toLowerCase())) {
-        entities.add(cleanWord);
+        
+        // Check if it's a common first name
+        if (commonFirstNames.has(cleanWord.toLowerCase())) {
+          entities.set(cleanWord, {
+            text: cleanWord,
+            type: 'person',
+            confidence: 0.9
+          });
+        } else if (!entities.has(cleanWord)) {
+          // Default to 'other' type for unknown capitalized words
+          entities.set(cleanWord, {
+            text: cleanWord,
+            type: 'other',
+            confidence: 0.5
+          });
+        }
       }
     });
 
@@ -139,18 +203,29 @@ export function extractEntities(text: string): string[] {
         currentEntity = currentEntity ? `${currentEntity} ${cleanWord}` : cleanWord;
       } else {
         if (currentEntity && currentEntity.includes(' ')) {
-          entities.add(currentEntity);
+          // Multi-word entities are likely places or organizations
+          entities.set(currentEntity, {
+            text: currentEntity,
+            type: currentEntity.split(' ').length <= 2 ? 'person' : 'place',
+            confidence: 0.6
+          });
         }
         currentEntity = '';
       }
     });
     
     if (currentEntity && currentEntity.includes(' ')) {
-      entities.add(currentEntity);
+      entities.set(currentEntity, {
+        text: currentEntity,
+        type: currentEntity.split(' ').length <= 2 ? 'person' : 'place',
+        confidence: 0.6
+      });
     }
   });
 
-  return Array.from(entities).slice(0, 5); // Limit to 5 entities
+  return Array.from(entities.values())
+    .sort((a, b) => b.confidence - a.confidence)
+    .slice(0, 5); // Limit to 5 entities
 }
 
 export function extractThemes(text: string, keywords: KeywordData[]): string[] {
@@ -393,8 +468,23 @@ export function buildThemeKeywordQuery(theme: string, keyword: string): string {
 
 export function buildEntityContextQuery(
   entity: string,
-  context: string
+  context: string,
+  entityType?: 'person' | 'place' | 'organization' | 'other'
 ): string {
+  // Enhanced query building based on entity type
+  if (entityType === 'person') {
+    // For person names, create more visual queries focused on people
+    // Use context to determine the type of person image needed
+    const personDescriptors = ['portrait man', 'portrait woman', 'person', 'man portrait', 'woman portrait', 'professional headshot'];
+    const randomDescriptor = personDescriptors[Math.floor(Math.random() * personDescriptors.length)];
+    
+    // If context has emotional or descriptive words, combine them
+    if (context) {
+      return `${randomDescriptor} ${context}`;
+    }
+    return randomDescriptor;
+  }
+  
   return `${entity} ${context}`;
 }
 
@@ -423,50 +513,114 @@ export function generateNarrativeQueries(
   const { keywords, themes, entities } = analysis;
   const { visualDescriptors } = config;
   
-  // Emotional and atmospheric queries
+  // Get entity data with types for better query generation
+  const entityData = extractEntitiesWithTypes(analysis.sentences.join(' '));
+  
+  // Emotional and atmospheric queries with multiple keywords
   const emotionalDescriptors = [...visualDescriptors.moods, ...visualDescriptors.lighting];
   
-  // Combine top keywords with emotional descriptors
-  keywords.slice(0, 2).forEach(kw => {
+  // Multi-keyword combinations for more realistic results
+  if (keywords.length >= 2) {
     const descriptor = getRandomDescriptor(emotionalDescriptors);
+    const setting = getRandomDescriptor(visualDescriptors.settings);
     queries.push({
-      query: `${descriptor} ${kw.word}`,
+      query: `${keywords[0].word} ${keywords[1].word} ${descriptor}`,
       relevanceScore: 0,
       strategy: 'contextual',
       components: {
-        keywords: [kw.word],
+        keywords: [keywords[0].word, keywords[1].word],
         descriptors: [descriptor]
       }
     });
-  });
-  
-  // Entity-based emotional queries
-  if (entities.length > 0 && themes.length > 0) {
-    const descriptor = getRandomDescriptor(visualDescriptors.moods);
+    
     queries.push({
-      query: `${descriptor} ${entities[0]} ${themes[0]}`,
+      query: `${descriptor} ${keywords[0].word} ${setting}`,
       relevanceScore: 0,
-      strategy: 'entity',
+      strategy: 'contextual',
       components: {
-        entities: [entities[0]],
-        themes: [themes[0]],
-        descriptors: [descriptor]
+        keywords: [keywords[0].word],
+        descriptors: [descriptor, setting]
       }
     });
   }
   
-  // Atmospheric theme queries
+  // Entity-based queries - prioritize person entities with realistic context
+  if (entityData.length > 0) {
+    const personEntities = entityData.filter(e => e.type === 'person');
+    
+    if (personEntities.length > 0) {
+      // For person entities, create realistic people-focused queries
+      const personQueries = [
+        'man portrait natural light',
+        'woman portrait outdoor',
+        'person thinking contemplative',
+        'man working focused',
+        'woman smiling genuine',
+        'elderly person portrait',
+        'middle aged man portrait',
+        'young woman portrait'
+      ];
+      
+      personEntities.slice(0, 2).forEach(() => {
+        const baseQuery = getRandomDescriptor(personQueries);
+        const mood = themes.length > 0 ? themes[0] : '';
+        
+        queries.push({
+          query: mood ? `${baseQuery} ${mood}` : baseQuery,
+          relevanceScore: 0,
+          strategy: 'entity',
+          components: {
+            entities: personEntities.map(e => e.text),
+            themes: themes.length > 0 ? [themes[0]] : [],
+            descriptors: [baseQuery]
+          }
+        });
+      });
+    } else if (entities.length > 0 && themes.length > 0) {
+      // Non-person entities with themes and keywords
+      const descriptor = getRandomDescriptor(visualDescriptors.moods);
+      const keyword = keywords.length > 0 ? keywords[0].word : '';
+      queries.push({
+        query: keyword ? `${descriptor} ${keyword} ${themes[0]}` : `${descriptor} ${entities[0]} ${themes[0]}`,
+        relevanceScore: 0,
+        strategy: 'entity',
+        components: {
+          entities: [entities[0]],
+          themes: [themes[0]],
+          keywords: keyword ? [keyword] : [],
+          descriptors: [descriptor]
+        }
+      });
+    }
+  }
+  
+  // Theme + keyword + descriptor combinations for realistic images
   themes.forEach(theme => {
-    const lighting = getRandomDescriptor(visualDescriptors.lighting);
-    queries.push({
-      query: `${theme} ${lighting}`,
-      relevanceScore: 0,
-      strategy: 'theme',
-      components: {
-        themes: [theme],
-        descriptors: [lighting]
-      }
-    });
+    if (keywords.length > 0) {
+      const lighting = getRandomDescriptor(visualDescriptors.lighting);
+      const color = getRandomDescriptor(visualDescriptors.colors);
+      queries.push({
+        query: `${theme} ${keywords[0].word} ${lighting}`,
+        relevanceScore: 0,
+        strategy: 'theme',
+        components: {
+          themes: [theme],
+          keywords: [keywords[0].word],
+          descriptors: [lighting]
+        }
+      });
+      
+      queries.push({
+        query: `${color} ${theme} ${keywords[0].word}`,
+        relevanceScore: 0,
+        strategy: 'theme',
+        components: {
+          themes: [theme],
+          keywords: [keywords[0].word],
+          descriptors: [color]
+        }
+      });
+    }
   });
   
   return queries;
@@ -534,6 +688,9 @@ export function generateDescriptiveQueries(
   const { keywords, themes, entities } = analysis;
   const { visualDescriptors } = config;
   
+  // Get entity data with types
+  const entityData = extractEntitiesWithTypes(analysis.sentences.join(' '));
+  
   // Specific object and scene queries with colors and settings
   keywords.slice(0, 3).forEach(kw => {
     const color = getRandomDescriptor(visualDescriptors.colors);
@@ -549,18 +706,38 @@ export function generateDescriptiveQueries(
     });
   });
   
-  // Entity with setting
-  if (entities.length > 0) {
-    const setting = getRandomDescriptor(visualDescriptors.settings);
-    queries.push({
-      query: `${entities[0]} ${setting}`,
-      relevanceScore: 0,
-      strategy: 'entity',
-      components: {
-        entities: [entities[0]],
-        descriptors: [setting]
-      }
-    });
+  // Entity with setting - handle person entities specially
+  if (entityData.length > 0) {
+    const personEntities = entityData.filter(e => e.type === 'person');
+    
+    if (personEntities.length > 0) {
+      // For person entities, use portrait-focused queries
+      const personDescriptors = ['portrait', 'man portrait', 'woman portrait', 'person'];
+      const descriptor = getRandomDescriptor(personDescriptors);
+      const setting = getRandomDescriptor(visualDescriptors.settings);
+      
+      queries.push({
+        query: `${descriptor} ${setting}`,
+        relevanceScore: 0,
+        strategy: 'entity',
+        components: {
+          entities: [personEntities[0].text],
+          descriptors: [descriptor, setting]
+        }
+      });
+    } else if (entities.length > 0) {
+      // Non-person entities
+      const setting = getRandomDescriptor(visualDescriptors.settings);
+      queries.push({
+        query: `${entities[0]} ${setting}`,
+        relevanceScore: 0,
+        strategy: 'entity',
+        components: {
+          entities: [entities[0]],
+          descriptors: [setting]
+        }
+      });
+    }
   }
   
   // Theme with specific visual details
@@ -675,6 +852,210 @@ export function deduplicateQueries(queries: SearchQuery[]): SearchQuery[] {
   });
 }
 
+// Generate multi-keyword combination queries
+export function generateMultiKeywordQueries(
+  analysis: TextAnalysis,
+  config: QueryGenerationConfig
+): SearchQuery[] {
+  const queries: SearchQuery[] = [];
+  const { keywords, themes, entities } = analysis;
+  const { visualDescriptors } = config;
+  
+  // Get entity data with types
+  const entityData = extractEntitiesWithTypes(analysis.sentences.join(' '));
+  const personEntities = entityData.filter(e => e.type === 'person');
+  
+  // Strategy 1: Two-keyword combinations (top keywords)
+  if (keywords.length >= 2) {
+    for (let i = 0; i < Math.min(3, keywords.length - 1); i++) {
+      for (let j = i + 1; j < Math.min(4, keywords.length); j++) {
+        queries.push({
+          query: `${keywords[i].word} ${keywords[j].word}`,
+          relevanceScore: 0,
+          strategy: 'combined',
+          components: {
+            keywords: [keywords[i].word, keywords[j].word]
+          }
+        });
+      }
+    }
+  }
+  
+  // Strategy 2: Keyword + Theme combinations
+  if (keywords.length > 0 && themes.length > 0) {
+    keywords.slice(0, 3).forEach(kw => {
+      themes.forEach(theme => {
+        queries.push({
+          query: `${kw.word} ${theme}`,
+          relevanceScore: 0,
+          strategy: 'combined',
+          components: {
+            keywords: [kw.word],
+            themes: [theme]
+          }
+        });
+      });
+    });
+  }
+  
+  // Strategy 3: Keyword + Visual Descriptor combinations
+  if (keywords.length > 0) {
+    const allDescriptors = [
+      ...visualDescriptors.colors,
+      ...visualDescriptors.moods,
+      ...visualDescriptors.settings,
+      ...visualDescriptors.lighting
+    ];
+    
+    keywords.slice(0, 3).forEach(kw => {
+      // Add 2 random descriptors per keyword
+      for (let i = 0; i < 2; i++) {
+        const descriptor = getRandomDescriptor(allDescriptors);
+        queries.push({
+          query: `${descriptor} ${kw.word}`,
+          relevanceScore: 0,
+          strategy: 'contextual',
+          components: {
+            keywords: [kw.word],
+            descriptors: [descriptor]
+          }
+        });
+      }
+    });
+  }
+  
+  // Strategy 4: Three-keyword combinations for very specific queries
+  if (keywords.length >= 3) {
+    const kw1 = keywords[0].word;
+    const kw2 = keywords[1].word;
+    const kw3 = keywords[2].word;
+    
+    queries.push({
+      query: `${kw1} ${kw2} ${kw3}`,
+      relevanceScore: 0,
+      strategy: 'combined',
+      components: {
+        keywords: [kw1, kw2, kw3]
+      }
+    });
+  }
+  
+  // Strategy 5: Entity + Keyword combinations (special handling for person entities)
+  if (personEntities.length > 0 && keywords.length > 0) {
+    // For person entities, create portrait queries with context
+    const personDescriptors = ['portrait', 'man portrait', 'woman portrait', 'person'];
+    
+    personEntities.slice(0, 2).forEach(entity => {
+      keywords.slice(0, 2).forEach(kw => {
+        const descriptor = getRandomDescriptor(personDescriptors);
+        queries.push({
+          query: `${descriptor} ${kw.word}`,
+          relevanceScore: 0,
+          strategy: 'entity',
+          components: {
+            entities: [entity.text],
+            keywords: [kw.word],
+            descriptors: [descriptor]
+          }
+        });
+      });
+    });
+  } else if (entities.length > 0 && keywords.length > 0) {
+    // Non-person entities with keywords
+    entities.slice(0, 2).forEach(entity => {
+      keywords.slice(0, 2).forEach(kw => {
+        queries.push({
+          query: `${entity} ${kw.word}`,
+          relevanceScore: 0,
+          strategy: 'entity',
+          components: {
+            entities: [entity],
+            keywords: [kw.word]
+          }
+        });
+      });
+    });
+  }
+  
+  // Strategy 6: Theme + Visual Descriptor combinations
+  if (themes.length > 0) {
+    themes.forEach(theme => {
+      // Add color + theme
+      const color = getRandomDescriptor(visualDescriptors.colors);
+      queries.push({
+        query: `${color} ${theme}`,
+        relevanceScore: 0,
+        strategy: 'theme',
+        components: {
+          themes: [theme],
+          descriptors: [color]
+        }
+      });
+      
+      // Add mood + theme
+      const mood = getRandomDescriptor(visualDescriptors.moods);
+      queries.push({
+        query: `${mood} ${theme}`,
+        relevanceScore: 0,
+        strategy: 'theme',
+        components: {
+          themes: [theme],
+          descriptors: [mood]
+        }
+      });
+    });
+  }
+  
+  // Strategy 7: Keyword + Setting + Lighting (highly specific)
+  if (keywords.length > 0) {
+    keywords.slice(0, 2).forEach(kw => {
+      const setting = getRandomDescriptor(visualDescriptors.settings);
+      const lighting = getRandomDescriptor(visualDescriptors.lighting);
+      
+      queries.push({
+        query: `${kw.word} ${setting} ${lighting}`,
+        relevanceScore: 0,
+        strategy: 'contextual',
+        components: {
+          keywords: [kw.word],
+          descriptors: [setting, lighting]
+        }
+      });
+    });
+  }
+  
+  // Strategy 8: Entity + Theme + Descriptor (for rich context)
+  if (personEntities.length > 0 && themes.length > 0) {
+    const personDescriptor = getRandomDescriptor(['portrait man', 'portrait woman', 'person portrait']);
+    const mood = themes.length > 0 ? themes[0] : getRandomDescriptor(visualDescriptors.moods);
+    
+    queries.push({
+      query: `${personDescriptor} ${mood}`,
+      relevanceScore: 0,
+      strategy: 'entity',
+      components: {
+        entities: [personEntities[0].text],
+        themes: [mood],
+        descriptors: [personDescriptor]
+      }
+    });
+  } else if (entities.length > 0 && themes.length > 0) {
+    const descriptor = getRandomDescriptor(visualDescriptors.moods);
+    queries.push({
+      query: `${entities[0]} ${themes[0]} ${descriptor}`,
+      relevanceScore: 0,
+      strategy: 'entity',
+      components: {
+        entities: [entities[0]],
+        themes: [themes[0]],
+        descriptors: [descriptor]
+      }
+    });
+  }
+  
+  return queries;
+}
+
 // Main query optimizer
 export function optimizeSearchQueries(
   queries: SearchQuery[],
@@ -764,7 +1145,11 @@ export function generateOptimizedImageSearchQueries(
       allQueries = [...narrativeQueries, ...technicalQueries, ...descriptiveQueries];
     }
     
-    // Add some basic queries for diversity
+    // Add multi-keyword combination queries for better specificity
+    const multiKeywordQueries = generateMultiKeywordQueries(analysis, config);
+    allQueries.push(...multiKeywordQueries);
+    
+    // Add some basic single keyword queries for diversity
     analysis.keywords.slice(0, 2).forEach(kw => {
       allQueries.push({
         query: kw.word,

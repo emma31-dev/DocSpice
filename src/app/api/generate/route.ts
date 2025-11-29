@@ -7,6 +7,7 @@ export interface ArticleData {
   id: string;
   title: string;
   content: string;
+  heroImage: UnsplashImage | null;
   images: UnsplashImage[];
   keywords: string[];
   themes: string[];
@@ -31,6 +32,24 @@ export async function POST(request: NextRequest) {
     // Analyze the text
     const analysis = await analyzeText(text);
     
+    // Use provided title or generate one
+    const title = providedTitle?.trim() || generateTitle(text, analysis.keywords);
+    
+    // Search for hero image using the full title as query with smart selection
+    let heroImage: UnsplashImage | null = null;
+    try {
+      console.log(`Searching for hero image with title: "${title}"`);
+      const { searchBestHeroImage } = await import('@/lib/unsplash');
+      heroImage = await searchBestHeroImage(title);
+      if (heroImage) {
+        console.log('Found best hero image for title');
+      } else {
+        console.log('No hero image found for title, will use first content image');
+      }
+    } catch (error) {
+      console.error('Error fetching hero image:', error);
+    }
+    
     // Generate image search queries using optimized function
     let imageQueries: string[];
     try {
@@ -40,7 +59,7 @@ export async function POST(request: NextRequest) {
       imageQueries = generateImageSearchQueries(analysis);
     }
     
-    // Search for images
+    // Search for content images
     let images;
     let imageSource = 'unsplash';
     
@@ -64,15 +83,13 @@ export async function POST(request: NextRequest) {
     
     console.log(`Using ${imageSource} images for article generation`);
 
-    // Use provided title or generate one
-    const title = providedTitle?.trim() || generateTitle(text, analysis.keywords);
-
     // Create article data
     const articleId = randomUUID();
     const articleData: ArticleData = {
       id: articleId,
       title,
       content: text,
+      heroImage,
       images,
       keywords: analysis.keywords.map(k => k.word),
       themes: analysis.themes,
