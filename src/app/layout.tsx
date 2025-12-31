@@ -1,6 +1,11 @@
 import type { Metadata, Viewport } from "next";
 import { PT_Serif } from "next/font/google";
 import "./globals.css";
+import { JotaiProvider } from "@/components/JotaiProvider";
+import Navigation from "@/components/Navigation";
+import ErrorBoundary from "@/components/ErrorBoundary";
+import { ToastProvider } from "@/components/ToastProvider";
+import { PerformanceMonitorComponent, PerformanceWarning } from "@/components/PerformanceMonitor";
 
 const ptSerif = PT_Serif({
   variable: "--font-pt-serif",
@@ -40,7 +45,20 @@ export default function RootLayout({
       <body
         className={`${ptSerif.variable} antialiased`}
       >
-        {children}
+        <ErrorBoundary>
+          <JotaiProvider>
+            <ToastProvider>
+              <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-sky-50">
+                <Navigation />
+                <main>
+                  {children}
+                </main>
+              </div>
+              <PerformanceMonitorComponent />
+              <PerformanceWarning />
+            </ToastProvider>
+          </JotaiProvider>
+        </ErrorBoundary>
       </body>
     </html>
   );

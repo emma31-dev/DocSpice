@@ -21,6 +21,9 @@ export const Spinner = ({
   );
 };
 
+// Alias for LoadingSpinner
+export const LoadingSpinner = Spinner;
+
 // Loading skeleton for text content
 export const TextSkeleton = ({ lines = 3 }: { lines?: number }) => {
   return (
@@ -276,6 +279,7 @@ export const LoadingImage = ({
         </div>
       )}
       
+      {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={currentSrc}
         alt={alt}
