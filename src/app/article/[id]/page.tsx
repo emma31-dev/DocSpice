@@ -30,18 +30,37 @@ export default function ArticlePage() {
         // Simulate loading progress for better UX
         setLoadingProgress(25);
         
-        const response = await fetch(`/api/generate?id=${params.id}`);
+        const response = await fetch(`/api/articles/${params.id}`);
         setLoadingProgress(50);
         
         if (response.ok) {
           const data = await response.json();
           setLoadingProgress(75);
-          setArticle(data);
+          
+          // Transform the database article to match the expected format
+          const transformedArticle = {
+            id: data.article.id,
+            title: data.article.title,
+            content: data.article.body,
+            createdAt: data.article.created_at,
+            images: data.article.image_links || [],
+            heroImage: data.article.image_links?.[0] || null,
+            keywords: [], // We'll need to extract these from content or store them
+            themes: [], // We'll need to extract these from content or store them
+            author: {
+              name: data.article.author_name,
+              email: data.article.author_email
+            }
+          };
+          
+          setArticle(transformedArticle);
           setLoadingProgress(100);
         } else {
-          setError('Article not found');
+          const errorData = await response.json();
+          setError(errorData.error || 'Article not found');
         }
-      } catch {
+      } catch (err) {
+        console.error('Failed to load article:', err);
         setError('Failed to load article');
       } finally {
         setTimeout(() => setLoading(false), 300); // Small delay for smooth transition

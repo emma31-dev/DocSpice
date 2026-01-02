@@ -30,7 +30,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
 
       // Create user profile
       const { error: profileError } = await supabase
-        .from('user_profiles')
+        .from('users')
         .insert({
           id: authData.user.id,
           user_name,
@@ -86,7 +86,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
 
       // Get user profile
       const { data: profile, error: profileError } = await supabase
-        .from('user_profiles')
+        .from('users')
         .select('user_name, email')
         .eq('id', data.user.id)
         .single()
@@ -148,7 +148,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
 
       // Get user profile
       const { data: profile, error: profileError } = await supabase
-        .from('user_profiles')
+        .from('users')
         .select('user_name, email, created_at')
         .eq('id', user.id)
         .single()

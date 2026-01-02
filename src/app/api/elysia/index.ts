@@ -5,7 +5,8 @@ import { authRoutes } from './auth'
 import { articleRoutes } from './articles'
 import { imageRoutes } from './images'
 
-const app = new Elysia({ prefix: '/api' })
+const app = new Elysia()
+  .get('/test', () => ({ message: 'Test endpoint working' }))
   .use(cors({
     origin: process.env.NODE_ENV === 'production' 
       ? [process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000']
@@ -26,10 +27,10 @@ const app = new Elysia({ prefix: '/api' })
       ]
     }
   }))
+  .get('/health', () => ({ status: 'ok', timestamp: new Date().toISOString() }))
   .use(authRoutes)
   .use(articleRoutes)
   .use(imageRoutes)
-  .get('/health', () => ({ status: 'ok', timestamp: new Date().toISOString() }))
   .onError(({ code, error, set }) => {
     console.error('API Error:', { code, error: error instanceof Error ? error.message : String(error) })
     
