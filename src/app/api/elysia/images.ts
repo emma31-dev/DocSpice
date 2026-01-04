@@ -1,39 +1,20 @@
-import { Elysia, t } from 'elysia'
-import { searchImages, getFallbackImages } from '@/lib/unsplash'
-
-// Simple in-memory cache for image search results
-const imageCache = new Map<string, { data: unknown, timestamp: number }>()
-const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
+import { Elysia, t } from 'elysia';
+import { searchImages, getFallbackImages } from '@/lib/unsplash';
 
 export const imageRoutes = new Elysia({ prefix: '/images' })
   .get('/search', async ({ query, set }) => {
     try {
-      const { q, per_page = 10, orientation, color, category } = query
+      const { q, per_page } = query;
 
       if (!q) {
-        set.status = 400
+        set.status = 400;
         return { error: 'Search query is required' }
       }
 
-      // Create cache key including all search parameters
-      const cacheKey = `${q}-${per_page}-${orientation || ''}-${color || ''}-${category || ''}`
-      
-      // Check cache first
-      const cached = imageCache.get(cacheKey)
-      if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-        return cached.data
-      }
-
-      // Build search parameters
-      const searchParams: Record<string, unknown> = { per_page }
-      if (orientation) searchParams.orientation = orientation
-      if (color) searchParams.color = color
-      if (category) searchParams.category = category
-
-      const results = await searchImages(q, per_page)
+      set.status = 200;
       
       // If no results from API, use fallback images
-      const images = results.length > 0 ? results : getFallbackImages().slice(0, per_page)
+      const images = await searchImages(q, per_page) || getFallbackImages().slice(0, per_page);
 
       const response = {
         images: images.map((image, index) => ({
@@ -57,12 +38,7 @@ export const imageRoutes = new Elysia({ prefix: '/images' })
         search_metadata: {
           query: q,
           total_results: images.length,
-          per_page,
-          filters: {
-            orientation: orientation || null,
-            color: color || null,
-            category: category || null
-          }
+          per_page
         },
         pagination: {
           total: images.length,
@@ -70,9 +46,6 @@ export const imageRoutes = new Elysia({ prefix: '/images' })
           has_more: false // Since we're using the existing simple API
         }
       }
-
-      // Cache the response
-      imageCache.set(cacheKey, { data: response, timestamp: Date.now() })
 
       return response
     } catch (error) {
@@ -84,51 +57,11 @@ export const imageRoutes = new Elysia({ prefix: '/images' })
     query: t.Object({
       q: t.String({ minLength: 1, maxLength: 100 }),
       per_page: t.Optional(t.Numeric({ minimum: 1, maximum: 30 })),
-      orientation: t.Optional(t.Union([
-        t.Literal('landscape'),
-        t.Literal('portrait'),
-        t.Literal('squarish')
-      ])),
-      color: t.Optional(t.Union([
-        t.Literal('black_and_white'),
-        t.Literal('black'),
-        t.Literal('white'),
-        t.Literal('yellow'),
-        t.Literal('orange'),
-        t.Literal('red'),
-        t.Literal('purple'),
-        t.Literal('magenta'),
-        t.Literal('green'),
-        t.Literal('teal'),
-        t.Literal('blue')
-      ])),
-      category: t.Optional(t.Union([
-        t.Literal('backgrounds'),
-        t.Literal('fashion'),
-        t.Literal('nature'),
-        t.Literal('science'),
-        t.Literal('education'),
-        t.Literal('feelings'),
-        t.Literal('health'),
-        t.Literal('people'),
-        t.Literal('religion'),
-        t.Literal('places'),
-        t.Literal('animals'),
-        t.Literal('industry'),
-        t.Literal('computer'),
-        t.Literal('food'),
-        t.Literal('sports'),
-        t.Literal('transportation'),
-        t.Literal('travel'),
-        t.Literal('buildings'),
-        t.Literal('business'),
-        t.Literal('music')
-      ]))
     }),
     tags: ['images'],
     detail: {
       summary: 'Enhanced image search',
-      description: 'Search for images with advanced filtering and caching'
+      description: 'Search for images in unsplash with advanced filtering'
     }
   })
 
@@ -309,27 +242,5 @@ export const imageRoutes = new Elysia({ prefix: '/images' })
     detail: {
       summary: 'Get image collections',
       description: 'Retrieve curated image collections'
-    }
-  })
-
-  .delete('/cache', async ({ set }) => {
-    try {
-      const cacheSize = imageCache.size
-      imageCache.clear()
-      
-      return {
-        message: 'Image cache cleared successfully',
-        cleared_entries: cacheSize
-      }
-    } catch (error) {
-      console.error('Cache clear error:', error)
-      set.status = 500
-      return { error: 'Internal server error' }
-    }
-  }, {
-    tags: ['images'],
-    detail: {
-      summary: 'Clear image cache',
-      description: 'Clear the in-memory image search cache'
     }
   })

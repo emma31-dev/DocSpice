@@ -1,11 +1,12 @@
 import { Elysia, t } from 'elysia'
 import { createClient } from '@/lib/supabase/server'
+import { request } from 'http';
 
 export const authRoutes = new Elysia({ prefix: '/auth' })
   .post('/signup', async ({ body, set }) => {
     try {
-      const { user_name, email, password } = body
-      const supabase = await createClient()
+      const { user_name, email, password } = body;
+      const supabase = await createClient();
 
       // Create user in Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -42,6 +43,8 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
         return { error: 'Failed to create user profile: ' + profileError.message }
       }
 
+      set.status = 200
+
       return {
         message: 'User created successfully',
         user: {
@@ -69,6 +72,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
       const { email, password } = body
       const supabase = await createClient()
 
+      // VALIDATE USER LOGINS
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
@@ -76,12 +80,12 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
 
       if (error) {
         set.status = 401
-        return { error: error.message }
+        return { error: `Authentication error: ${error.message}` }
       }
 
       if (!data.user) {
         set.status = 401
-        return { error: 'Authentication failed' }
+        return { error: 'User not found' }
       }
 
       // Get user profile
@@ -111,7 +115,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
   }, {
     body: t.Object({
       email: t.String({ format: 'email' }),
-      password: t.String({ minLength: 1 })
+      password: t.String({ minLength: 6 })
     }),
     tags: ['auth']
   })

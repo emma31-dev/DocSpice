@@ -55,7 +55,7 @@ export const articleRoutes = new Elysia({ prefix: '/articles' })
   }, {
     body: t.Object({
       title: t.String({ minLength: 1, maxLength: 255 }),
-      body: t.String({ minLength: 1 }),
+      body: t.String({ minLength: 20 }),
       image_links: t.Array(t.Object({
         url: t.String(),
         alt: t.String(),
@@ -68,14 +68,14 @@ export const articleRoutes = new Elysia({ prefix: '/articles' })
 
   .get('/feed', async ({ query, set }) => {
     try {
-      const { page = 1, limit = 10 } = query
+      const { page = 1 , limit = 10 } = query
       const offset = (page - 1) * limit
       const supabase = await createClient()
 
       // Get articles with author information
       const { data: articles, error } = await supabase
         .from('articles_with_author')
-        .select('id, title, body, image_links, created_at, author_name, author_email')
+        .select('id, title, body, image_links, created_at, created_by')
         .order('created_at', { ascending: false })
         .range(offset, offset + limit - 1)
 
@@ -130,8 +130,8 @@ export const articleRoutes = new Elysia({ prefix: '/articles' })
       const supabase = await createClient()
 
       const { data: article, error } = await supabase
-        .from('articles_with_author')
-        .select('*')
+        .from('articles')
+        .select('id, title, body, image_links, created_at, created_by, updated_at, views')
         .eq('id', id)
         .single()
 
@@ -145,12 +145,8 @@ export const articleRoutes = new Elysia({ prefix: '/articles' })
         return { error: 'Failed to fetch article' }
       }
 
-      // Add view tracking (optional enhancement)
-      try {
-        await supabase.rpc('increment_article_views', { article_id: id })
-      } catch (err: unknown) {
-        console.warn('Failed to increment view count:', err)
-      }
+      article.views = article.views + 1;
+      await supabase.from('articles').update({ views: article.views }).eq('id', id);
 
       return { 
         article: {
@@ -356,77 +352,5 @@ export const articleRoutes = new Elysia({ prefix: '/articles' })
     detail: {
       summary: 'Delete article',
       description: 'Delete an article (requires ownership)'
-    }
-  })
-
-  .get('/user/:userId', async ({ params, query, set }) => {
-    try {
-      const { userId } = params
-      const { page = 1, limit = 10 } = query
-      const offset = (page - 1) * limit
-      
-      // Validate UUID format
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
-      if (!uuidRegex.test(userId)) {
-        set.status = 400
-        return { error: 'Invalid user ID format' }
-      }
-
-      const supabase = await createClient()
-
-      // Get articles by specific user
-      const { data: articles, error } = await supabase
-        .from('articles_with_author')
-        .select('id, title, body, image_links, created_at, updated_at, author_name')
-        .eq('created_by', userId)
-        .order('created_at', { ascending: false })
-        .range(offset, offset + limit - 1)
-
-      if (error) {
-        console.error('User articles fetch error:', error)
-        set.status = 500
-        return { error: 'Failed to fetch user articles' }
-      }
-
-      // Get total count for pagination
-      const { count, error: countError } = await supabase
-        .from('articles')
-        .select('*', { count: 'exact', head: true })
-        .eq('created_by', userId)
-
-      if (countError) {
-        console.warn('Count fetch error:', countError)
-      }
-
-      return {
-        articles: articles?.map(article => ({
-          ...article,
-          word_count: article.body ? article.body.split(/\s+/).length : 0,
-          reading_time: article.body ? Math.ceil(article.body.split(/\s+/).length / 200) : 0
-        })) || [],
-        pagination: {
-          page,
-          limit,
-          total: count || 0,
-          hasMore: (count || 0) > offset + limit
-        }
-      }
-    } catch (error) {
-      console.error('User articles error:', error)
-      set.status = 500
-      return { error: 'Internal server error' }
-    }
-  }, {
-    params: t.Object({
-      userId: t.String({ pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$' })
-    }),
-    query: t.Object({
-      page: t.Optional(t.Numeric({ minimum: 1 })),
-      limit: t.Optional(t.Numeric({ minimum: 1, maximum: 50 }))
-    }),
-    tags: ['articles'],
-    detail: {
-      summary: 'Get articles by user',
-      description: 'Retrieve all articles created by a specific user'
     }
   })

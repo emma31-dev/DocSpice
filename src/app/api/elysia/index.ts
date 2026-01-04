@@ -4,15 +4,20 @@ import { swagger } from '@elysiajs/swagger'
 import { authRoutes } from './auth'
 import { articleRoutes } from './articles'
 import { imageRoutes } from './images'
+import { userRoutes } from './user'
 
 const app = new Elysia()
   .get('/test', () => ({ message: 'Test endpoint working' }))
+
+  // CORS PERMTS ONLY REQUEST FROM THE FRONTEND
   .use(cors({
     origin: process.env.NODE_ENV === 'production' 
       ? [process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000']
       : true,
     credentials: true
   }))
+
+  // SWAGGER GENERATES UI FOR TESTING END POINTS IN site_url/api/swagger
   .use(swagger({
     documentation: {
       info: {
@@ -31,13 +36,17 @@ const app = new Elysia()
   .use(authRoutes)
   .use(articleRoutes)
   .use(imageRoutes)
+  .use(userRoutes)
+
+  // ERROR MESSAGE
+  // Full errors are in the console
   .onError(({ code, error, set }) => {
     console.error('API Error:', { code, error: error instanceof Error ? error.message : String(error) })
     
     switch (code) {
       case 'VALIDATION':
         set.status = 400
-        return { error: 'Validation failed', details: error instanceof Error ? error.message : String(error) }
+        return { error: 'Validation failed' }
       case 'NOT_FOUND':
         set.status = 404
         return { error: 'Resource not found' }

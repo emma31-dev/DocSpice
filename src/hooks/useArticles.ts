@@ -1,7 +1,6 @@
 'use client'
 
 import { useAtom, useAtomValue, useSetAtom } from 'jotai'
-import { createClient } from '@/lib/supabase/client'
 import {
   currentArticleAtom,
   articlesListAtom,
@@ -22,46 +21,31 @@ export function useArticles() {
   const setIsLoading = useSetAtom(isLoadingAtom)
   const setError = useSetAtom(errorMessageAtom)
 
-  const fetchArticles = async () => {
+  const fetchArticles = async (page = 1, limit = 10) => {
     try {
       setIsLoading(true)
       setError(null)
       
-      const supabase = createClient()
-      const { data, error: fetchError } = await supabase
-        .from('articles')
-        .select(`
-          id,
-          title,
-          body,
-          image_links,
-          created_by,
-          created_at,
-          users!articles_created_by_fkey (
-            user_name
-          )
-        `)
-        .order('created_at', { ascending: false })
-      
-      if (fetchError) {
-        throw fetchError
-      }
-      
-      // Transform the data to match our Article interface
-      const articles: Article[] = data.map(article => {
-        const users = article.users as { user_name: string } | { user_name: string }[] | null
-        const userName = Array.isArray(users) ? users[0]?.user_name : users?.user_name
-        
-        return {
-          ...article,
-          author: {
-            user_name: userName || 'Unknown'
-          }
-        }
+      const response = await fetch(`/api/articles/feed?page=${page}&limit=${limit}`, {
+        credentials: 'include'
       })
       
-      setArticlesList(articles)
-      return { success: true, data: articles }
+      const data = await response.json()
+      
+      if (response.ok) {
+        // Transform the data to match our Article interface
+        const articles: Article[] = data.articles.map((article: any) => ({
+          ...article,
+          author: {
+            user_name: article.author_name || 'Unknown'
+          }
+        }))
+        
+        setArticlesList(articles)
+        return { success: true, data: articles, pagination: data.pagination }
+      } else {
+        throw new Error(data.error || 'Failed to fetch articles')
+      }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to fetch articles'
       setError(errorMessage)
@@ -76,42 +60,93 @@ export function useArticles() {
       setIsLoading(true)
       setError(null)
       
-      const supabase = createClient()
-      const { data, error: fetchError } = await supabase
-        .from('articles')
-        .select(`
-          id,
-          title,
-          body,
-          image_links,
-          created_by,
-          created_at,
-          users!articles_created_by_fkey (
-            user_name
-          )
-        `)
-        .eq('id', id)
-        .single()
+      const response = await fetch(`/api/articles/${id}`, {
+        credentials: 'include'
+      })
       
-      if (fetchError) {
-        throw fetchError
-      }
+      const data = await response.json()
       
-      // Transform the data to match our Article interface
-      const users = data.users as { user_name: string } | { user_name: string }[] | null
-      const userName = Array.isArray(users) ? users[0]?.user_name : users?.user_name
-      
-      const article: Article = {
-        ...data,
-        author: {
-          user_name: userName || 'Unknown'
+      if (response.ok) {
+        const article: Article = {
+          ...data.article,
+          author: {
+            user_name: data.article.author_name || 'Unknown'
+          }
         }
+        
+        setCurrentArticle(article)
+        return { success: true, data: article }
+      } else {
+        throw new Error(data.error || 'Failed to fetch article')
       }
-      
-      setCurrentArticle(article)
-      return { success: true, data: article }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to fetch article'
+      setError(errorMessage)
+      return { success: false, error: errorMessage }
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const updateArticle = async (id: string, updates: { title: string; body: string; image_links: any[] }) => {
+    try {
+      setIsLoading(true)
+      setError(null)
+      
+      const response = await fetch(`/api/articles/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify(updates)
+      })
+      
+      const data = await response.json()
+      
+      if (response.ok) {
+        const article: Article = {
+          ...data.article,
+          author: {
+            user_name: data.article.author_name || 'Unknown'
+          }
+        }
+        
+        setCurrentArticle(article)
+        return { success: true, data: article }
+      } else {
+        throw new Error(data.error || 'Failed to update article')
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to update article'
+      setError(errorMessage)
+      return { success: false, error: errorMessage }
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const deleteArticle = async (id: string) => {
+    try {
+      setIsLoading(true)
+      setError(null)
+      
+      const response = await fetch(`/api/articles/${id}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      })
+      
+      const data = await response.json()
+      
+      if (response.ok) {
+        // Remove from articles list if it exists
+        setArticlesList(prev => prev.filter(article => article.id !== id))
+        return { success: true, data: data.deleted_article }
+      } else {
+        throw new Error(data.error || 'Failed to delete article')
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to delete article'
       setError(errorMessage)
       return { success: false, error: errorMessage }
     } finally {
@@ -126,6 +161,8 @@ export function useArticles() {
     error,
     fetchArticles,
     fetchArticleById,
+    updateArticle,
+    deleteArticle,
     setCurrentArticle,
     setArticlesList
   }
@@ -142,62 +179,33 @@ export function useArticleCreation() {
     try {
       updateCreationState({ isPublishing: true, publishError: null })
       
-      const supabase = createClient()
-      
-      // Get current user
-      const { data: { user }, error: userError } = await supabase.auth.getUser()
-      
-      if (userError || !user) {
-        throw new Error('User not authenticated')
-      }
-      
-      // Prepare article data for database
-      const articleData = {
-        title: generatedArticle.title,
-        body: generatedArticle.body,
-        image_links: generatedArticle.images,
-        created_by: user.id
-      }
-      
-      const { data, error: publishError } = await supabase
-        .from('articles')
-        .insert(articleData)
-        .select(`
-          id,
-          title,
-          body,
-          image_links,
-          created_by,
-          created_at,
-          users!articles_created_by_fkey (
-            user_name
-          )
-        `)
-        .single()
-      
-      if (publishError) {
-        throw publishError
-      }
-      
-      // Transform the data to match our Article interface
-      const users = data.users as { user_name: string } | { user_name: string }[] | null
-      const userName = Array.isArray(users) ? users[0]?.user_name : users?.user_name
-      
-      const publishedArticle: Article = {
-        ...data,
-        author: {
-          user_name: userName || 'Unknown'
-        }
-      }
-      
-      updateCreationState({ 
-        isPublishing: false, 
-        publishError: null,
-        generatedArticle: null,
-        content: ''
+      const response = await fetch('/api/articles/publish', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          title: generatedArticle.title,
+          body: generatedArticle.body,
+          image_links: generatedArticle.images
+        })
       })
       
-      return { success: true, data: publishedArticle }
+      const data = await response.json()
+      
+      if (response.ok) {
+        updateCreationState({ 
+          isPublishing: false, 
+          publishError: null,
+          generatedArticle: null,
+          content: ''
+        })
+        
+        return { success: true, data: data.article }
+      } else {
+        throw new Error(data.error || 'Failed to publish article')
+      }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to publish article'
       updateCreationState({ 

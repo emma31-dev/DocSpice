@@ -2,7 +2,6 @@
 
 import { useAtomValue, useSetAtom } from 'jotai'
 import { useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import {
   supabaseUserAtom,
   appUserAtom,
@@ -10,8 +9,6 @@ import {
   authLoadingAtom,
   authErrorAtom,
   authInitializedAtom,
-  initializeAuthAtom,
-  signOutAtom,
   setAuthStateAtom
 } from '@/atoms/auth'
 
@@ -23,51 +20,79 @@ export function useAuth() {
   const error = useAtomValue(authErrorAtom)
   const initialized = useAtomValue(authInitializedAtom)
   
-  const initializeAuth = useSetAtom(initializeAuthAtom)
-  const signOut = useSetAtom(signOutAtom)
   const setAuthState = useSetAtom(setAuthStateAtom)
 
-  // Initialize auth state and set up auth state listener
+  // Initialize auth state on mount
   useEffect(() => {
-    const supabase = createClient()
-    
-    // Initialize auth state
-    initializeAuth()
-    
-    // Listen for auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (event === 'SIGNED_IN' && session?.user) {
-          setAuthState({ user: session.user, loading: true })
-          
-          // Fetch app user data
-          const { data: userData, error: userError } = await supabase
-            .from('users')
-            .select('id, user_name, email, created_at')
-            .eq('id', session.user.id)
-            .single()
-
-          if (userError) {
-            console.error('Error fetching user data:', userError)
-            setAuthState({ appUser: null, loading: false })
-          } else {
-            setAuthState({ appUser: userData, loading: false })
-          }
-        } else if (event === 'SIGNED_OUT') {
+    const initializeAuth = async () => {
+      try {
+        setAuthState({ loading: true })
+        
+        const response = await fetch('/api/auth/user', {
+          credentials: 'include'
+        })
+        
+        if (response.ok) {
+          const data = await response.json()
+          setAuthState({ 
+            user: data.user, 
+            appUser: data.user, 
+            loading: false
+          })
+        } else {
           setAuthState({ 
             user: null, 
             appUser: null, 
-            loading: false, 
-            error: null 
+            loading: false
           })
         }
+      } catch (error) {
+        console.error('Auth initialization error:', error)
+        setAuthState({ 
+          user: null, 
+          appUser: null, 
+          loading: false, 
+          error: 'Failed to initialize auth'
+        })
       }
-    )
-
-    return () => {
-      subscription.unsubscribe()
     }
-  }, [initializeAuth, setAuthState])
+
+    initializeAuth()
+  }, [setAuthState])
+
+  const signOut = async () => {
+    try {
+      setAuthState({ loading: true })
+      
+      const response = await fetch('/api/auth/signout', {
+        method: 'POST',
+        credentials: 'include'
+      })
+      
+      if (response.ok) {
+        setAuthState({ 
+          user: null, 
+          appUser: null, 
+          loading: false, 
+          error: null 
+        })
+        // Redirect to home or login page
+        window.location.href = '/'
+      } else {
+        const data = await response.json()
+        setAuthState({ 
+          loading: false, 
+          error: data.error || 'Sign out failed' 
+        })
+      }
+    } catch (error) {
+      console.error('Sign out error:', error)
+      setAuthState({ 
+        loading: false, 
+        error: 'Sign out failed' 
+      })
+    }
+  }
 
   return {
     user: supabaseUser,
@@ -82,24 +107,36 @@ export function useAuth() {
 
 export function useAuthActions() {
   const setAuthState = useSetAtom(setAuthStateAtom)
-  const signOut = useSetAtom(signOutAtom)
   
   const signIn = async (email: string, password: string) => {
     try {
       setAuthState({ loading: true, error: null })
       
-      const supabase = createClient()
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
+      const response = await fetch('/api/auth/signin', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify({ email, password })
       })
       
-      if (error) {
-        throw error
-      }
+      const data = await response.json()
       
-      // Auth state will be updated by the onAuthStateChange listener
-      return { success: true, data }
+      if (response.ok) {
+        setAuthState({ 
+          user: data.user, 
+          appUser: data.user, 
+          loading: false 
+        })
+        return { success: true, data }
+      } else {
+        setAuthState({ 
+          loading: false, 
+          error: data.error || 'Sign in failed' 
+        })
+        return { success: false, error: data.error || 'Sign in failed' }
+      }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Sign in failed'
       setAuthState({ loading: false, error: errorMessage })
@@ -111,43 +148,73 @@ export function useAuthActions() {
     try {
       setAuthState({ loading: true, error: null })
       
-      const supabase = createClient()
-      
-      // First, sign up with Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email,
-        password
+      const response = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify({ 
+          email, 
+          password, 
+          user_name: userName 
+        })
       })
       
-      if (authError) {
-        throw authError
-      }
+      const data = await response.json()
       
-      if (!authData.user) {
-        throw new Error('User creation failed')
-      }
-      
-      // Then create user record in our users table
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .insert({
-          id: authData.user.id,
-          user_name: userName,
-          email: email
+      if (response.ok) {
+        setAuthState({ 
+          user: data.user, 
+          appUser: data.user, 
+          loading: false 
         })
-        .select('id, user_name, email, created_at')
-        .single()
-      
-      if (userError) {
-        throw userError
+        return { success: true, data }
+      } else {
+        setAuthState({ 
+          loading: false, 
+          error: data.error || 'Sign up failed' 
+        })
+        return { success: false, error: data.error || 'Sign up failed' }
       }
-      
-      // Auth state will be updated by the onAuthStateChange listener
-      return { success: true, data: { auth: authData, user: userData } }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Sign up failed'
       setAuthState({ loading: false, error: errorMessage })
       return { success: false, error: errorMessage }
+    }
+  }
+
+  const signOut = async () => {
+    try {
+      setAuthState({ loading: true })
+      
+      const response = await fetch('/api/auth/signout', {
+        method: 'POST',
+        credentials: 'include'
+      })
+      
+      if (response.ok) {
+        setAuthState({ 
+          user: null, 
+          appUser: null, 
+          loading: false, 
+          error: null 
+        })
+        // Redirect to home or login page
+        window.location.href = '/'
+      } else {
+        const data = await response.json()
+        setAuthState({ 
+          loading: false, 
+          error: data.error || 'Sign out failed' 
+        })
+      }
+    } catch (error) {
+      console.error('Sign out error:', error)
+      setAuthState({ 
+        loading: false, 
+        error: 'Sign out failed' 
+      })
     }
   }
 

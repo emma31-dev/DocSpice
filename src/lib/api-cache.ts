@@ -75,8 +75,12 @@ export async function getCachedArticleById(id: string): Promise<unknown> {
   })
 }
 
-export async function getCachedUserProfile(userId: string): Promise<unknown> {
-  const cacheKey = CACHE_KEYS.USER_PROFILE(userId)
+export async function getCachedUserProfile(
+  userId: string,
+  page: number = 1,
+  limit: number = 10
+): Promise<unknown> {
+  const cacheKey = `${CACHE_KEYS.USER_PROFILE(userId)}:${page}:${limit}`
   
   return deduplicateRequest(cacheKey, async () => {
     // Check cache first
@@ -85,8 +89,8 @@ export async function getCachedUserProfile(userId: string): Promise<unknown> {
       return cached
     }
 
-    // Fetch from API
-    const response = await fetch(`/api/auth/user/${userId}`)
+    // Fetch from API - now includes both profile and articles
+    const response = await fetch(`/api/elysia/user/profile/${userId}?page=${page}&limit=${limit}`)
     if (!response.ok) {
       throw new Error('Failed to fetch user profile')
     }
@@ -105,7 +109,12 @@ export async function getCachedUserArticles(
   page: number = 1,
   limit: number = 10
 ): Promise<unknown> {
-  const cacheKey = `${CACHE_KEYS.USER_ARTICLES(userId)}:${page}:${limit}`
+  // Use the profile endpoint since it now returns both profile and articles
+  return getCachedUserProfile(userId, page, limit)
+}
+
+export async function getCachedUserSearch(query: string, limit: number = 10): Promise<unknown> {
+  const cacheKey = `user:search:${query}:${limit}`
   
   return deduplicateRequest(cacheKey, async () => {
     // Check cache first
@@ -115,15 +124,15 @@ export async function getCachedUserArticles(
     }
 
     // Fetch from API
-    const response = await fetch(`/api/elysia/articles/user/${userId}?page=${page}&limit=${limit}`)
+    const response = await fetch(`/api/elysia/user/search?q=${encodeURIComponent(query)}&limit=${limit}`)
     if (!response.ok) {
-      throw new Error('Failed to fetch user articles')
+      throw new Error('Failed to search users')
     }
 
     const data = await response.json()
     
-    // Cache the result
-    apiCache.set(cacheKey, data, CACHE_TTL.ARTICLES_FEED)
+    // Cache the result for shorter time since search results change frequently
+    apiCache.set(cacheKey, data, 2 * 60 * 1000) // 2 minutes
     
     return data
   })
