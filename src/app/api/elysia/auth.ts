@@ -1,6 +1,5 @@
 import { Elysia, t } from 'elysia'
 import { createClient } from '@/lib/supabase/server'
-import { request } from 'http';
 
 export const authRoutes = new Elysia({ prefix: '/auth' })
   .post('/signup', async ({ body, set }) => {

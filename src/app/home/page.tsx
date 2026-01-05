@@ -1,64 +1,48 @@
-import { createClient } from '@/lib/supabase/server'
-import { SuccessMessage } from '@/components/SuccessMessage'
-import { ArticleGrid } from '@/components/ArticleCard'
-import ErrorMessage from '@/components/ErrorMessage'
-import Link from 'next/link'
-import { PenTool, Plus } from 'lucide-react'
-import { redirect } from 'next/navigation'
+'use client';
 
-interface ImageLink {
-  url: string
-  alt: string
-  position: number
-  unsplash_id?: string
-}
+import { useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useAuth } from '@/hooks/useAuth';
+import { useArticles } from '@/hooks/useArticles';
+import { SuccessMessage } from '@/components/SuccessMessage';
+import { ArticleGrid } from '@/components/ArticleCard';
+import ErrorMessage from '@/components/ErrorMessage';
+import { Spinner } from '@/components/LoadingComponents';
+import Link from 'next/link';
+import { PenTool, Plus } from 'lucide-react';
 
-interface Article {
-  id: string
-  title: string
-  body: string
-  image_links: ImageLink[]
-  created_at: string
-  author_name: string
-  author_email: string
-}
-
-export default async function HomePage({
-  searchParams,
-}: {
-  searchParams: Promise<{ success?: string }>
-}) {
-  const params = await searchParams
+function HomePageContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { user, isAuthenticated, loading: authLoading } = useAuth();
+  const { articlesList, isLoading, error, fetchArticles } = useArticles();
   
-  // Check authentication
-  const supabase = await createClient()
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser()
+  const success = searchParams.get('success');
 
-  if (authError || !user) {
-    redirect('/auth/signin?redirect=/home')
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      router.push('/auth/signin?redirect=/home');
+      return;
+    }
+
+    if (isAuthenticated) {
+      fetchArticles(1, 12);
+    }
+  }, [isAuthenticated, authLoading, router, fetchArticles]);
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Spinner size="lg" className="mb-4" />
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
   }
 
-  // Fetch articles from the API endpoint
-  let articles: Article[] = []
-  let error: string | null = null
-
-  try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/articles/feed?limit=12`, {
-      cache: 'no-store' // Ensure fresh data
-    })
-    
-    if (response.ok) {
-      const data = await response.json()
-      articles = data.articles || []
-    } else {
-      error = 'Failed to fetch articles'
-    }
-  } catch (fetchError) {
-    console.error('Error fetching articles:', fetchError)
-    error = 'Network error while fetching articles'
+  if (!isAuthenticated) {
+    return null; // Will redirect
   }
 
   return (
@@ -67,7 +51,7 @@ export default async function HomePage({
         {/* Welcome Section */}
         <div className="mb-8">
           <h2 className="text-3xl font-bold text-gray-800 mb-2">
-            Welcome back, {user.user_metadata?.user_name || user.email?.split('@')[0]}!
+            Welcome back, {user?.user_name || user?.email?.split('@')[0]}!
           </h2>
           <p className="text-gray-600">
             Discover the latest articles from our community
@@ -75,23 +59,31 @@ export default async function HomePage({
         </div>
 
         {/* Success Message */}
-        {params.success === 'true' && (
+        {success === 'true' && (
           <div className="mb-8">
             <SuccessMessage message="Article published successfully! 🎉" />
           </div>
         )}
 
+        {/* Loading State */}
+        {isLoading && (
+          <div className="text-center py-16">
+            <Spinner size="lg" className="mb-4" />
+            <p className="text-gray-600">Loading articles...</p>
+          </div>
+        )}
+
         {/* Error State */}
-        {error && (
+        {error && !isLoading && (
           <ErrorMessage 
             title="Error loading articles"
-            message="Please check your database connection and try again."
-            onRetry={() => window.location.reload()}
+            message={error}
+            onRetry={() => fetchArticles(1, 12)}
           />
         )}
 
         {/* Empty State */}
-        {!error && (!articles || articles.length === 0) && (
+        {!isLoading && !error && (!articlesList || articlesList.length === 0) && (
           <div className="text-center py-16">
             <div className="inline-flex items-center justify-center w-20 h-20 bg-gray-100 rounded-full mb-6">
               <PenTool className="h-10 w-10 text-gray-400" />
@@ -112,19 +104,19 @@ export default async function HomePage({
         )}
 
         {/* Articles Grid */}
-        {!error && articles && articles.length > 0 && (
+        {!isLoading && !error && articlesList && articlesList.length > 0 && (
           <>
             <div className="mb-8">
               <h3 className="text-2xl font-bold text-gray-800 mb-2">Community Articles</h3>
               <p className="text-gray-600">
-                {articles.length} {articles.length === 1 ? 'article' : 'articles'} published by our community
+                {articlesList.length} {articlesList.length === 1 ? 'article' : 'articles'} published by our community
               </p>
             </div>
 
-            <ArticleGrid articles={articles} />
+            <ArticleGrid articles={articlesList} />
 
             {/* Load More Section (Placeholder for future pagination) */}
-            {articles.length >= 12 && (
+            {articlesList.length >= 12 && (
               <div className="text-center mt-12">
                 <button
                   className="px-6 py-3 bg-gray-100 text-gray-700 font-semibold rounded-xl
@@ -156,5 +148,20 @@ export default async function HomePage({
         </div>
       </div>
     </div>
-  )
+  );
+}
+
+export default function HomePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Spinner size="lg" className="mb-4" />
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    }>
+      <HomePageContent />
+    </Suspense>
+  );
 }

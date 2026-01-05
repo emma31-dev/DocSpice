@@ -3,13 +3,16 @@ import { atom } from 'jotai'
 // Re-export auth atoms
 export * from './auth'
 
-// User and authentication types
+// User and authentication types (matching our API)
 export interface User {
   id: string
   user_name: string
   email: string
   created_at: string
 }
+
+// Type alias for consistency
+export type ApiUser = User
 
 export interface Article {
   id: string
@@ -18,6 +21,9 @@ export interface Article {
   image_links: ImageLink[]
   created_by: string
   created_at: string
+  views?: number
+  word_count?: number
+  reading_time?: number
   author?: {
     user_name: string
   }

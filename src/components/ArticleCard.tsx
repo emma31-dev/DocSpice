@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { memo } from 'react'
+import { Eye } from 'lucide-react'
 import { ThumbnailImage } from './OptimizedImage'
 import { getCardClasses } from '@/lib/theme'
 
@@ -18,8 +19,13 @@ interface Article {
   body: string
   image_links: ImageLink[]
   created_at: string
-  author_name: string
-  author_email: string
+  views?: number
+  author?: {
+    user_name: string
+  }
+  // Legacy support for direct properties
+  author_name?: string
+  author_email?: string
 }
 
 interface ArticleCardProps {
@@ -69,9 +75,17 @@ export const ArticleCard = memo(function ArticleCard({ article }: ArticleCardPro
           </div>
         )}
         
-        {/* Reading time badge */}
-        <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-full text-xs font-medium text-gray-600">
-          {readingTime} min read
+        {/* Reading time and view count badges */}
+        <div className="absolute top-3 right-3 flex gap-2">
+          {article.views !== undefined && article.views > 0 && (
+            <div className="bg-white/90 backdrop-blur-sm px-2 py-1 rounded-full text-xs font-medium text-gray-600 flex items-center gap-1">
+              <Eye className="h-3 w-3" />
+              {article.views}
+            </div>
+          )}
+          <div className="bg-white/90 backdrop-blur-sm px-2 py-1 rounded-full text-xs font-medium text-gray-600">
+            {readingTime} min read
+          </div>
         </div>
       </div>
 
@@ -90,11 +104,11 @@ export const ArticleCard = memo(function ArticleCard({ article }: ArticleCardPro
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-sky-400 rounded-full flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
-              {article.author_name?.charAt(0).toUpperCase() || article.author_email?.charAt(0).toUpperCase() || 'U'}
+              {(article.author?.user_name || article.author_name || article.author_email)?.charAt(0).toUpperCase() || 'U'}
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-sm font-medium text-gray-800 truncate">
-                {article.author_name || article.author_email?.split('@')[0] || 'Anonymous'}
+                {article.author?.user_name || article.author_name || article.author_email?.split('@')[0] || 'Anonymous'}
               </p>
               <time dateTime={article.created_at} className="text-xs text-gray-500">
                 {formattedDate}

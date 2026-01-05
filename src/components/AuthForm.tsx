@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
+import { useAuthActions } from '@/hooks/useAuth'
 import ErrorMessage from '@/components/ErrorMessage'
 
 interface AuthFormProps {
@@ -34,6 +34,7 @@ export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { signIn, signUp } = useAuthActions()
   
   // Get redirect URL from search params or default to /home
   const redirectTo = searchParams.get('redirect') || '/home'
@@ -81,82 +82,31 @@ export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
     setErrors({})
 
     try {
-      const supabase = createClient()
+      let result
 
       if (mode === 'signin') {
-        console.log('Starting signin process...')
-        // Sign in with Supabase directly
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: formData.email,
-          password: formData.password
-        })
-
-        console.log('Signin result:', { data: !!data, error })
-
-        if (error) {
-          console.log('Signin error:', error)
-          setErrors({ general: error.message })
-          setIsLoading(false)
-          return
-        }
-
-        if (!data.user) {
-          console.log('No user returned from signin')
-          setErrors({ general: 'Authentication failed' })
-          setIsLoading(false)
-          return
-        }
-
-        console.log('Signin successful, user:', data.user.id)
+        result = await signIn(formData.email, formData.password)
       } else {
-        // Sign up with Supabase directly
-        const { data: authData, error: authError } = await supabase.auth.signUp({
-          email: formData.email,
-          password: formData.password
-        })
-
-        if (authError) {
-          setErrors({ general: authError.message })
-          setIsLoading(false)
-          return
-        }
-
-        if (!authData.user) {
-          setErrors({ general: 'Failed to create user' })
-          setIsLoading(false)
-          return
-        }
-
-        // Create user profile in our users table
-        const { error: profileError } = await supabase
-          .from('users')
-          .insert({
-            id: authData.user.id,
-            user_name: formData.user_name!,
-            email: formData.email
-          })
-
-        if (profileError) {
-          setErrors({ general: 'Failed to create user profile: ' + profileError.message })
-          setIsLoading(false)
-          return
-        }
+        result = await signUp(formData.email, formData.password, formData.user_name!)
       }
 
-      // Call success callback if provided
-      if (onSuccess) {
-        onSuccess()
+      if (result.success) {
+        // Call success callback if provided
+        if (onSuccess) {
+          onSuccess()
+        } else {
+          // Small delay to allow auth state to update
+          setTimeout(() => {
+            router.push(redirectTo)
+          }, 100)
+        }
       } else {
-        // Small delay to allow auth state to update
-        setTimeout(() => {
-          router.push(redirectTo)
-        }, 100)
+        setErrors({ general: result.error || 'Authentication failed' })
       }
-      
-      setIsLoading(false)
     } catch (error) {
       console.error('Auth error:', error)
       setErrors({ general: 'Network error. Please try again.' })
+    } finally {
       setIsLoading(false)
     }
   }

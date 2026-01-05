@@ -8,7 +8,7 @@ import {
   isLoadingAtom,
   errorMessageAtom
 } from '@/atoms'
-import type { Article, ArticleCreationState, GeneratedArticle } from '@/atoms'
+import type { Article, ArticleCreationState, GeneratedArticle, ImageLink } from '@/atoms'
 
 export function useArticles() {
   const currentArticle = useAtomValue(currentArticleAtom)
@@ -34,7 +34,14 @@ export function useArticles() {
       
       if (response.ok) {
         // Transform the data to match our Article interface
-        const articles: Article[] = data.articles.map((article: any) => ({
+        const articles: Article[] = data.articles.map((article: {
+          id: string;
+          title: string;
+          body: string;
+          image_links: ImageLink[];
+          created_at: string;
+          author_name?: string;
+        }) => ({
           ...article,
           author: {
             user_name: article.author_name || 'Unknown'
@@ -88,7 +95,7 @@ export function useArticles() {
     }
   }
 
-  const updateArticle = async (id: string, updates: { title: string; body: string; image_links: any[] }) => {
+  const updateArticle = async (id: string, updates: { title: string; body: string; image_links: ImageLink[] }) => {
     try {
       setIsLoading(true)
       setError(null)

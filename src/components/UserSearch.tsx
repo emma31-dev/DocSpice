@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import Image from 'next/image'
 import { Search, User, X } from 'lucide-react'
 import { getCachedUserSearch } from '@/lib/api-cache'
 import { LoadingSpinner } from '@/components/LoadingComponents'
@@ -136,9 +137,11 @@ export default function UserSearch({
                 >
                   <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-sky-400 rounded-full flex items-center justify-center flex-shrink-0">
                     {user.avatar_url ? (
-                      <img 
+                      <Image 
                         src={user.avatar_url} 
                         alt={user.full_name}
+                        width={32}
+                        height={32}
                         className="w-8 h-8 rounded-full object-cover"
                       />
                     ) : (
@@ -155,7 +158,7 @@ export default function UserSearch({
             </div>
           ) : query.length >= 2 ? (
             <div className="px-4 py-3 text-sm text-gray-600">
-              No users found for "{query}"
+              No users found for &quot;{query}&quot;
             </div>
           ) : null}
         </div>
