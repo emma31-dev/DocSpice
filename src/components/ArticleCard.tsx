@@ -34,8 +34,14 @@ interface ArticleCardProps {
 
 // Memoized component to prevent unnecessary re-renders
 export const ArticleCard = memo(function ArticleCard({ article }: ArticleCardProps) {
-  // Get the first image for the card preview
-  const featuredImage = article.image_links?.[0]
+  // Choose a featured image from available fields (compatibility across responses)
+  const featuredImage = (
+    (article.image_links && article.image_links.length && article.image_links[0]) ||
+    // some endpoints might return `preview_images` or `images`
+    ((article as unknown as { preview_images?: ImageLink[] }).preview_images && (article as unknown as { preview_images?: ImageLink[] }).preview_images![0]) ||
+    ((article as unknown as { images?: ImageLink[] }).images && (article as unknown as { images?: ImageLink[] }).images![0]) ||
+    null
+  ) as ImageLink | null
   
   // Format the date
   const formattedDate = new Date(article.created_at).toLocaleDateString('en-US', {
@@ -56,7 +62,7 @@ export const ArticleCard = memo(function ArticleCard({ article }: ArticleCardPro
   return (
     <article className={`${getCardClasses('md', true)} group animate-fade-in-up`}>
       {/* Article Image */}
-      <div className="relative w-full h-56 bg-gradient-to-br from-gray-100 to-gray-200">
+      <div className="relative w-full h-56 bg-linear-to-br from-gray-100 to-gray-200">
         {featuredImage ? (
           <ThumbnailImage
             src={featuredImage.url}
@@ -65,7 +71,7 @@ export const ArticleCard = memo(function ArticleCard({ article }: ArticleCardPro
             className="transition-transform duration-300 group-hover:scale-105"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-50 to-sky-50">
+          <div className="w-full h-full flex items-center justify-center bg-linear-to-br from-blue-50 to-sky-50">
             <div className="text-blue-300 text-center">
               <svg className="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -75,6 +81,16 @@ export const ArticleCard = memo(function ArticleCard({ article }: ArticleCardPro
           </div>
         )}
         
+        {/* Creator overlay (bottom-left on image) */}
+        {featuredImage && (
+          <div className="absolute left-3 bottom-3 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-medium text-gray-700 flex items-center gap-2">
+            <div className="w-6 h-6 rounded-full bg-linear-to-br from-blue-500 to-sky-400 text-white flex items-center justify-center text-xs font-semibold">
+              {(article.author?.user_name || article.author_name || article.author_email)?.charAt(0).toUpperCase() || 'U'}
+            </div>
+            <span className="truncate max-w-[10rem]">{article.author?.user_name || article.author_name || article.author_email?.split('@')[0] || 'Anonymous'}</span>
+          </div>
+        )}
+
         {/* Reading time and view count badges */}
         <div className="absolute top-3 right-3 flex gap-2">
           {article.views !== undefined && article.views > 0 && (
@@ -103,7 +119,7 @@ export const ArticleCard = memo(function ArticleCard({ article }: ArticleCardPro
         
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-sky-400 rounded-full flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
+            <div className="w-8 h-8 bg-linear-to-br from-blue-500 to-sky-400 rounded-full flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
               {(article.author?.user_name || article.author_name || article.author_email)?.charAt(0).toUpperCase() || 'U'}
             </div>
             <div className="min-w-0 flex-1">

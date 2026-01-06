@@ -1,5 +1,7 @@
 import { Elysia, t } from 'elysia'
 import { createClient } from '@/lib/supabase/server'
+import { analyzeText, generateImageSearchQueries } from '@/lib/textAnalysis'
+import { searchImagesForQueries, getFallbackImages, UnsplashImage } from '@/lib/unsplash'
 
 export const articleRoutes = new Elysia({ prefix: '/articles' })
   .post('/publish', async ({ body, set }) => {
@@ -66,16 +68,64 @@ export const articleRoutes = new Elysia({ prefix: '/articles' })
     tags: ['articles']
   })
 
+  // Generate a draft article (analysis + image search) without publishing
+  .post('/generate', async ({ body, set }) => {
+    try {
+      const { text, title } = body as { text: string; title?: string }
+
+      if (!text || typeof text !== 'string' || text.trim().length < 20) {
+        set.status = 400
+        return { error: 'Text is required and should be at least 20 characters' }
+      }
+
+      const analysis = analyzeText(text)
+      const queries = generateImageSearchQueries(analysis)
+
+      let images = await searchImagesForQueries(queries)
+      if (!images || images.length === 0) {
+        images = getFallbackImages()
+      }
+
+      const article = {
+        title: title && title.trim().length > 0 ? title : (analysis.sentences[0] || 'Untitled Article').slice(0, 120),
+        content: text,
+        images: (images || []).map((img: UnsplashImage, index: number, arr: UnsplashImage[]) => ({
+          url: img.urls?.regular || (img as unknown as { url?: string }).url || '',
+          alt: img.alt_description || img.description || 'Article illustration',
+          position: Math.floor(index * ((text.split('\n\n') || []).length / (arr.length || 1))) + 1,
+          unsplash_id: img.id || null
+        }))
+      }
+
+      return { article }
+    } catch (error) {
+      console.error('Article generate error:', error)
+      set.status = 500
+      return { error: 'Failed to generate article' }
+    }
+  }, {
+    body: t.Object({ text: t.String(), title: t.Optional(t.String()) }),
+    tags: ['articles']
+  })
+
   .get('/feed', async ({ query, set }) => {
     try {
-      const { page = 1 , limit = 10 } = query
+      const page = typeof query.page === 'string' ? parseInt(query.page, 10) : (query.page || 1)
+      const limit = typeof query.limit === 'string' ? parseInt(query.limit, 10) : (query.limit || 10)
+      
+      // Validate pagination parameters
+      if (page < 1 || limit < 1 || limit > 50) {
+        set.status = 400
+        return { error: 'Invalid pagination parameters' }
+      }
+      
       const offset = (page - 1) * limit
       const supabase = await createClient()
 
       // Get articles with author information
       const { data: articles, error } = await supabase
-        .from('articles_with_author')
-        .select('id, title, body, image_links, created_at, created_by')
+        .from('articles')
+        .select('id, title, body, image_links, created_at, created_by, views')
         .order('created_at', { ascending: false })
         .range(offset, offset + limit - 1)
 
@@ -94,8 +144,35 @@ export const articleRoutes = new Elysia({ prefix: '/articles' })
         console.warn('Count fetch error:', countError)
       }
 
+      // If articles were fetched, try to resolve author display names from `profiles`
+      let articlesWithAuthor: unknown[] = (articles || [])
+
+      try {
+        const userIds = Array.from(new Set((articlesWithAuthor || []).map((a: unknown) => (a as { created_by?: string }).created_by).filter(Boolean)))
+        if (userIds.length > 0) {
+          const { data: profiles } = await supabase
+            .from('profiles')
+            .select('id, user_name')
+            .in('id', userIds)
+
+          const profileMap: Record<string, { id: string; user_name?: string } | undefined> = {}
+          ;(profiles || []).forEach((p: unknown) => { const pr = p as { id: string; user_name?: string }; profileMap[pr.id] = pr })
+
+          articlesWithAuthor = (articlesWithAuthor || []).map((a: unknown) => {
+            const createdBy = (a as { created_by?: string }).created_by
+            return {
+              ...(a as Record<string, unknown>),
+              author_name: createdBy ? profileMap[createdBy]?.user_name || null : null
+            }
+          })
+        }
+      } catch (err) {
+        console.warn('Failed to resolve author names for articles feed', err)
+      }
+
+      set.status = 200
       return {
-        articles: articles || [],
+        articles: articlesWithAuthor,
         pagination: {
           page,
           limit,
@@ -110,10 +187,14 @@ export const articleRoutes = new Elysia({ prefix: '/articles' })
     }
   }, {
     query: t.Object({
-      page: t.Optional(t.Numeric({ minimum: 1 })),
-      limit: t.Optional(t.Numeric({ minimum: 1, maximum: 50 }))
+      page: t.Optional(t.String()),
+      limit: t.Optional(t.String())
     }),
-    tags: ['articles']
+    tags: ['articles'],
+    detail: {
+      summary: 'Get article feed',
+      description: 'Retrieve paginated list of all articles'
+    }
   })
 
   .get('/:id', async ({ params, set }) => {

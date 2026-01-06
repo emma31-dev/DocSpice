@@ -177,7 +177,7 @@ export const theme = {
         xl: 'px-8 py-4 text-xl',
       },
       variants: {
-        primary: 'bg-gradient-to-r from-blue-600 to-sky-500 text-white hover:from-blue-700 hover:to-sky-600 focus:ring-blue-500 shadow-lg hover:shadow-xl transform hover:scale-105',
+        primary: 'bg-linear-to-r from-blue-600 to-sky-500 text-white hover:from-blue-700 hover:to-sky-600 focus:ring-blue-500 shadow-lg hover:shadow-xl transform hover:scale-105',
         secondary: 'bg-gray-100 text-gray-700 hover:bg-gray-200 focus:ring-gray-500 border border-gray-200',
         outline: 'border border-blue-600 text-blue-600 hover:bg-blue-50 focus:ring-blue-500',
         ghost: 'text-gray-700 hover:bg-gray-100 focus:ring-gray-500',

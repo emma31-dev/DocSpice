@@ -135,7 +135,7 @@ export default function UserSearch({
                   onClick={() => handleUserSelect(user)}
                   className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center gap-3 transition-colors"
                 >
-                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-sky-400 rounded-full flex items-center justify-center flex-shrink-0">
+                  <div className="w-8 h-8 bg-linear-to-br from-blue-500 to-sky-400 rounded-full flex items-center justify-center flex-shrink-0">
                     {user.avatar_url ? (
                       <Image 
                         src={user.avatar_url} 

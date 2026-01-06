@@ -72,7 +72,7 @@ export default function Navigation({ className = '' }: NavigationProps) {
       default: `text-gray-700 hover:text-blue-600 hover:bg-blue-50 ${
         href && isActive(href) ? 'text-blue-600 bg-blue-50' : ''
       }`,
-      primary: "bg-gradient-to-r from-blue-600 to-sky-500 text-white hover:from-blue-700 hover:to-sky-600 shadow-lg hover:shadow-xl transform hover:scale-105",
+      primary: "bg-linear-to-r from-blue-600 to-sky-500 text-white hover:from-blue-700 hover:to-sky-600 shadow-lg hover:shadow-xl transform hover:scale-105",
       danger: "text-red-700 hover:text-red-800 hover:bg-red-50"
     }
 
@@ -105,11 +105,11 @@ export default function Navigation({ className = '' }: NavigationProps) {
         <div className="flex items-center justify-between">
           {/* Logo */}
           <Link href={user ? "/home" : "/"} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-            <div className="p-2 bg-gradient-to-br from-blue-500 to-sky-400 rounded-xl text-white">
+            <div className="p-2 bg-linear-to-br from-blue-500 to-sky-400 rounded-xl text-white">
               <DocSpiceIcon size={32} className="text-white" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-sky-400 bg-clip-text text-transparent">
+              <h1 className="text-3xl font-bold bg-linear-to-r from-blue-600 to-sky-400 bg-clip-text text-transparent">
                 DocSpice
               </h1>
               <p className="text-sm text-gray-600">Beautiful Articles, Beautifully Illustrated</p>

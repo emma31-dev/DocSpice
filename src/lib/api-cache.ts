@@ -1,8 +1,46 @@
 /**
  * API caching strategies for improved performance
+ *
+ * The project previously used a shared `performance` helper. The monitor
+ * and performance utilities were removed; provide a lightweight local
+ * cache and dedupe implementation here instead.
  */
 
-import { apiCache, deduplicateRequest } from './performance'
+// Simple in-memory cache object with TTL support
+const apiCache = {
+  cache: new Map<string, { value: unknown; expiresAt?: number }>(),
+  get(key: string) {
+    const entry = this.cache.get(key)
+    if (!entry) return undefined
+    if (entry.expiresAt && Date.now() > entry.expiresAt) {
+      this.cache.delete(key)
+      return undefined
+    }
+    return entry.value
+  },
+  set(key: string, value: unknown, ttl?: number) {
+    const expiresAt = ttl ? Date.now() + ttl : undefined
+    this.cache.set(key, { value, expiresAt })
+  },
+  clear() {
+    this.cache.clear()
+  }
+}
+
+// Deduplicate concurrent requests by key
+const inFlight = new Map<string, Promise<unknown>>()
+async function deduplicateRequest(key: string, fn: () => Promise<unknown>): Promise<unknown> {
+  if (inFlight.has(key)) return inFlight.get(key) as Promise<unknown>
+  const p = (async () => {
+    try {
+      return await fn()
+    } finally {
+      inFlight.delete(key)
+    }
+  })()
+  inFlight.set(key, p)
+  return p
+}
 
 // Cache keys
 export const CACHE_KEYS = {
@@ -24,7 +62,7 @@ export const CACHE_TTL = {
 // Cached API functions
 export async function getCachedArticlesFeed(
   page: number = 1,
-  limit: number = 12
+  limit: number = 10
 ): Promise<unknown> {
   const cacheKey = `${CACHE_KEYS.ARTICLES_FEED}:${page}:${limit}`
   
@@ -201,7 +239,7 @@ export function invalidateUserCache(userId: string): void {
 export async function preloadCriticalData(): Promise<void> {
   try {
     // Preload first page of articles feed
-    await getCachedArticlesFeed(1, 12)
+    await getCachedArticlesFeed(1, 10)
     
     console.log('Critical data preloaded successfully')
   } catch (error) {
@@ -247,7 +285,7 @@ export function startCacheCleanup(): void {
     const cache = apiCache['cache']
     
     for (const [key, item] of cache.entries()) {
-      if (now - item.timestamp > item.ttl) {
+      if (item.expiresAt && now > item.expiresAt) {
         cache.delete(key)
       }
     }

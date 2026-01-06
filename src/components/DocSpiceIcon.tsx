@@ -49,10 +49,10 @@ export const DocSpiceLogo: React.FC<DocSpiceIconProps> = ({
   className = '' 
 }) => (
   <div className={`inline-flex items-center gap-3 ${className}`}>
-    <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl text-white">
+    <div className="p-2 bg-linear-to-br from-blue-500 to-purple-600 rounded-xl text-white">
       <DocSpiceIcon size={size} className="text-white" />
     </div>
-    <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+    <span className="text-2xl font-bold bg-linear-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
       DocSpice
     </span>
   </div>

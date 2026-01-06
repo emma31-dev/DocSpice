@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuthActions } from '@/hooks/useAuth'
-import ErrorMessage from '@/components/ErrorMessage'
+import { useToastContext } from '@/components/ToastProvider'
 
 interface AuthFormProps {
   mode: 'signin' | 'signup'
@@ -35,6 +35,7 @@ export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { signIn, signUp } = useAuthActions()
+  const toast = useToastContext()
   
   // Get redirect URL from search params or default to /home
   const redirectTo = searchParams.get('redirect') || '/home'
@@ -91,6 +92,11 @@ export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
       }
 
       if (result.success) {
+        toast.success(
+          mode === 'signin' ? 'Welcome back!' : 'Account created successfully!',
+          { title: mode === 'signin' ? 'Signed In' : 'Welcome to DocSpice' }
+        )
+        
         // Call success callback if provided
         if (onSuccess) {
           onSuccess()
@@ -101,11 +107,15 @@ export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
           }, 100)
         }
       } else {
-        setErrors({ general: result.error || 'Authentication failed' })
+        toast.error(result.error || 'Authentication failed', {
+          title: mode === 'signin' ? 'Sign In Failed' : 'Sign Up Failed'
+        })
       }
     } catch (error) {
       console.error('Auth error:', error)
-      setErrors({ general: 'Network error. Please try again.' })
+      toast.error('Network error. Please try again.', {
+        title: 'Connection Error'
+      })
     } finally {
       setIsLoading(false)
     }
@@ -140,14 +150,6 @@ export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
             }
           </p>
         </div>
-
-        {errors.general && (
-          <ErrorMessage 
-            message={errors.general} 
-            dismissible 
-            onDismiss={() => setErrors(prev => ({ ...prev, general: undefined }))}
-          />
-        )}
 
         {mode === 'signup' && (
           <div>
@@ -214,7 +216,7 @@ export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
         <button
           type="submit"
           disabled={isLoading}
-          className="w-full bg-gradient-to-r from-blue-600 to-sky-500 text-white py-3 px-4 rounded-xl font-semibold
+          className="w-full bg-linear-to-r from-blue-600 to-sky-500 text-white py-3 px-4 rounded-xl font-semibold
             hover:from-blue-700 hover:to-sky-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 
             disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl
             transform hover:scale-105 disabled:transform-none"

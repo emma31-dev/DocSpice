@@ -79,7 +79,7 @@ export default function ProfilePage() {
               </div>
               <div className="p-8">
                 <div className="flex items-center gap-6 mb-8">
-                  <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-sky-400 rounded-full flex items-center justify-center">
+                  <div className="w-20 h-20 bg-linear-to-br from-blue-500 to-sky-400 rounded-full flex items-center justify-center">
                     <span className="text-2xl font-bold text-white">
                       {appUser.user_name.charAt(0).toUpperCase()}
                     </span>

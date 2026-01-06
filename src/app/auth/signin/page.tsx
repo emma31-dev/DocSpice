@@ -31,7 +31,7 @@ export default function SignInPage() {
                 <DocSpiceIcon size={32} className="text-white" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-sky-400 bg-clip-text text-transparent">
+                <h1 className="text-2xl font-bold bg-linear-to-r from-blue-600 to-sky-400 bg-clip-text text-transparent">
                   DocSpice
                 </h1>
               </div>

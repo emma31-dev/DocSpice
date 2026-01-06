@@ -28,7 +28,7 @@ export function useAuth() {
       try {
         setAuthState({ loading: true })
         
-        const response = await fetch('/api/auth/user', {
+        const response = await fetch('/api/elysia/auth/user', {
           credentials: 'include'
         })
         
@@ -64,7 +64,7 @@ export function useAuth() {
     try {
       setAuthState({ loading: true })
       
-      const response = await fetch('/api/auth/signout', {
+      const response = await fetch('/api/elysia/auth/signout', {
         method: 'POST',
         credentials: 'include'
       })
@@ -112,7 +112,7 @@ export function useAuthActions() {
     try {
       setAuthState({ loading: true, error: null })
       
-      const response = await fetch('/api/auth/signin', {
+      const response = await fetch('/api/elysia/auth/signin', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -148,7 +148,7 @@ export function useAuthActions() {
     try {
       setAuthState({ loading: true, error: null })
       
-      const response = await fetch('/api/auth/signup', {
+      const response = await fetch('/api/elysia/auth/signup', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -188,7 +188,7 @@ export function useAuthActions() {
     try {
       setAuthState({ loading: true })
       
-      const response = await fetch('/api/auth/signout', {
+      const response = await fetch('/api/elysia/auth/signout', {
         method: 'POST',
         credentials: 'include'
       })

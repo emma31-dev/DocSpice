@@ -59,6 +59,7 @@ export interface ProcessedImage {
 // Article state management
 export const currentArticleAtom = atom<Article | null>(null)
 export const articlesListAtom = atom<Article[]>([])
+export const feedLoadedAtom = atom<boolean>(false)
 
 // Article creation state
 export const articleCreationAtom = atom<ArticleCreationState>({

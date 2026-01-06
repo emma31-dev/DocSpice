@@ -6,8 +6,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useArticles } from '@/hooks/useArticles';
 import { SuccessMessage } from '@/components/SuccessMessage';
 import { ArticleGrid } from '@/components/ArticleCard';
-import ErrorMessage from '@/components/ErrorMessage';
 import { Spinner } from '@/components/LoadingComponents';
+import { useToastContext } from '@/components/ToastProvider';
 import Link from 'next/link';
 import { PenTool, Plus } from 'lucide-react';
 
@@ -16,6 +16,7 @@ function HomePageContent() {
   const searchParams = useSearchParams();
   const { user, isAuthenticated, loading: authLoading } = useAuth();
   const { articlesList, isLoading, error, fetchArticles } = useArticles();
+  const toast = useToastContext();
   
   const success = searchParams.get('success');
 
@@ -26,9 +27,23 @@ function HomePageContent() {
     }
 
     if (isAuthenticated) {
-      fetchArticles(1, 12);
+      // intentionally not adding fetchArticles to dependency array because
+      // fetchArticles is re-created on each render from the hook. Calling it
+      // here once when auth state is ready avoids repeated fetch loops.
+      fetchArticles(1, 10);
     }
-  }, [isAuthenticated, authLoading, router, fetchArticles]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, authLoading, router]);
+
+  // Show error as toast instead of inline
+  useEffect(() => {
+    if (error) {
+      toast.error(error, { title: 'Failed to Load Articles' });
+    }
+    // `toast` is stable from context but its identity can change between renders;
+    // we intentionally omit it from deps to avoid re-running this effect repeatedly.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [error]);
 
   if (authLoading) {
     return (
@@ -49,8 +64,8 @@ function HomePageContent() {
     <div className="px-6 py-12">
       <div className="max-w-7xl mx-auto">
         {/* Welcome Section */}
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold text-gray-800 mb-2">
+            <div className="mb-8">
+              <h2 className="text-3xl font-bold text-gray-800 mb-2">
             Welcome back, {user?.user_name || user?.email?.split('@')[0]}!
           </h2>
           <p className="text-gray-600">
@@ -73,14 +88,8 @@ function HomePageContent() {
           </div>
         )}
 
-        {/* Error State */}
-        {error && !isLoading && (
-          <ErrorMessage 
-            title="Error loading articles"
-            message={error}
-            onRetry={() => fetchArticles(1, 12)}
-          />
-        )}
+        {/* Error State - now handled by toast */}
+        {/* Removed inline error display */}
 
         {/* Empty State */}
         {!isLoading && !error && (!articlesList || articlesList.length === 0) && (
@@ -116,7 +125,7 @@ function HomePageContent() {
             <ArticleGrid articles={articlesList} />
 
             {/* Load More Section (Placeholder for future pagination) */}
-            {articlesList.length >= 12 && (
+            {articlesList.length >= 10 && (
               <div className="text-center mt-12">
                 <button
                   className="px-6 py-3 bg-gray-100 text-gray-700 font-semibold rounded-xl
@@ -131,7 +140,7 @@ function HomePageContent() {
         )}
 
         {/* Quick Actions */}
-        <div className="mt-16 bg-gradient-to-r from-blue-600 to-sky-500 rounded-3xl p-8 text-center text-white">
+            <div className="mt-16 bg-linear-to-r from-blue-600 to-sky-500 rounded-3xl p-8 text-center text-white">
           <h3 className="text-2xl font-bold mb-4">Ready to Share Your Story?</h3>
           <p className="text-lg mb-6 opacity-90">
             Transform your ideas into beautiful illustrated articles with AI-powered image matching.

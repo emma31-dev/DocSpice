@@ -78,7 +78,7 @@ export default function CreateArticlePage() {
             Back to Home
           </Link>
           <div className="text-center">
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-sky-400 bg-clip-text text-transparent mb-2">
+            <h1 className="text-4xl font-bold bg-linear-to-r from-blue-600 to-sky-400 bg-clip-text text-transparent mb-2">
               Create New Article
             </h1>
             <p className="text-gray-600">
@@ -195,7 +195,7 @@ export default function CreateArticlePage() {
               <button
                 type="submit"
                 disabled={isPending}
-                className="px-8 py-4 bg-gradient-to-r from-blue-600 to-sky-500 text-white font-semibold rounded-xl
+                className="px-8 py-4 bg-linear-to-r from-blue-600 to-sky-500 text-white font-semibold rounded-xl
                   hover:from-blue-700 hover:to-sky-600 
                   disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed
                   transition-all duration-200 shadow-lg hover:shadow-xl

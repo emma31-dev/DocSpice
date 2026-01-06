@@ -32,13 +32,17 @@ export default function ArticlePage() {
     const loadArticle = async () => {
       if (params.id && typeof params.id === 'string') {
         setLoadingProgress(25);
+        // Fetch article by id. Exclude `fetchArticleById` from deps because
+        // its identity changes between renders (it's returned by a hook),
+        // which would cause this effect to re-run repeatedly.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
         await fetchArticleById(params.id);
         setLoadingProgress(100);
       }
     };
 
     loadArticle();
-  }, [params.id, fetchArticleById]);
+  }, [params.id]);
 
   if (isLoading) {
     return (
@@ -119,6 +123,8 @@ export default function ArticlePage() {
   const images = currentArticle.image_links as ImageLink[] || [];
   const heroImage = images[0];
   const contentImages = images.slice(1);
+  const authorName = currentArticle?.author?.user_name || (currentArticle as unknown as { author_name?: string }).author_name || (currentArticle as unknown as { author_email?: string }).author_email?.split('@')[0] || 'Anonymous';
+  const authorInitial = (authorName && authorName.charAt(0).toUpperCase()) || 'U';
 
   // Share functionality
   const shareUrl = typeof window !== 'undefined' ? window.location.href : '';
@@ -179,7 +185,7 @@ export default function ArticlePage() {
               src={heroImage.url}
               alt={heroImage.alt || 'Hero image'}
               fill
-              className="object-cover transition-opacity duration-500"
+              className="object-cover"
               priority
               onLoad={() => handleImageLoad('hero')}
             />
@@ -189,30 +195,19 @@ export default function ArticlePage() {
               </div>
             )}
           </div>
-          <div className="absolute inset-0 bg-black bg-opacity-40"></div>
-          <div className={`absolute inset-0 flex items-center justify-center transition-opacity duration-500 ${
-            imagesLoaded['hero'] ? 'opacity-100' : 'opacity-70'
-          }`}>
-            <div className="text-center text-white max-w-4xl mx-auto px-6">
-              <h1 className="text-4xl md:text-5xl font-bold mb-4 leading-tight animate-fade-in">
-                {currentArticle.title}
-              </h1>
-              <div className="flex items-center justify-center gap-6 text-white/80 animate-fade-in-delay">
-                <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4" />
-                  <span>{new Date(currentArticle.created_at).toLocaleDateString()}</span>
+          <div className="absolute inset-0 bg-black bg-opacity-40" />
+
+          <div className={"absolute inset-0 flex items-center justify-center transition-opacity duration-500 " + (imagesLoaded['hero'] ? 'opacity-100' : 'opacity-70')}>
+            <div className="max-w-4xl mx-auto px-6 text-center text-white">
+              <h1 className="text-4xl md:text-5xl font-bold mb-4 leading-tight">{currentArticle.title}</h1>
+
+              <div className="flex items-center justify-center gap-3 mt-2">
+                <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center text-white text-sm font-semibold">
+                  {authorInitial}
                 </div>
-                <div className="flex items-center gap-2">
-                  <Eye className="h-4 w-4" />
-                  <span>{currentArticle.views || 0} views</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Palette className="h-4 w-4" />
-                  <span>{images.length} images</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 animate-pulse" />
-                  <span>AI Enhanced</span>
+                <div className="text-left">
+                  <p className="text-sm font-medium">{authorName}</p>
+                  <time className="text-xs opacity-80">{new Date(currentArticle.created_at).toLocaleDateString()}</time>
                 </div>
               </div>
             </div>
@@ -354,7 +349,7 @@ export default function ArticlePage() {
 
               <button
                 onClick={() => handleShare('instagram')}
-                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#833AB4] via-[#FD1D1D] to-[#F77737] text-white rounded-xl hover:opacity-90 transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105"
+                className="flex items-center gap-2 px-6 py-3 bg-linear-to-r from-[#833AB4] via-[#FD1D1D] to-[#F77737] text-white rounded-xl hover:opacity-90 transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105"
                 aria-label="Copy link for Instagram"
               >
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">

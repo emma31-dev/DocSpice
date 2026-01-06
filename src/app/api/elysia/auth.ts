@@ -129,6 +129,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
         return { error: error.message }
       }
 
+      set.status = 200
       return { message: 'Signed out successfully' }
     } catch (error) {
       console.error('Signout error:', error)
@@ -136,7 +137,11 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
       return { error: 'Internal server error' }
     }
   }, {
-    tags: ['auth']
+    tags: ['auth'],
+    detail: {
+      summary: 'Sign out',
+      description: 'Sign out the current authenticated user'
+    }
   })
 
   .get('/user', async ({ set }) => {
@@ -160,6 +165,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
         console.warn('Profile fetch error:', profileError)
       }
 
+      set.status = 200
       return {
         user: {
           id: user.id,
@@ -174,5 +180,9 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
       return { error: 'Internal server error' }
     }
   }, {
-    tags: ['auth']
+    tags: ['auth'],
+    detail: {
+      summary: 'Get current user',
+      description: 'Retrieve the authenticated user\'s profile information'
+    }
   })

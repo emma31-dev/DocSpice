@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 
 export default function SignUpPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-sky-50">
+    <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-sky-50">
       {/* Header */}
       <header className="px-6 py-6">
         <div className="max-w-md mx-auto">
@@ -27,11 +27,11 @@ export default function SignUpPage() {
           
           <div className="text-center mb-8">
             <div className="flex items-center justify-center gap-3 mb-4">
-              <div className="p-2 bg-gradient-to-br from-blue-500 to-sky-400 rounded-xl text-white">
+              <div className="p-2 bg-linear-to-br from-blue-500 to-sky-400 rounded-xl text-white">
                 <DocSpiceIcon size={32} className="text-white" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-sky-400 bg-clip-text text-transparent">
+                <h1 className="text-2xl font-bold bg-linear-to-r from-blue-600 to-sky-400 bg-clip-text text-transparent">
                   DocSpice
                 </h1>
               </div>

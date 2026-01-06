@@ -65,7 +65,7 @@ export const ProgressIndicator = ({
       {/* Progress bar */}
       <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
         <div 
-          className="bg-gradient-to-r from-blue-500 to-sky-400 h-2 rounded-full transition-all duration-500 ease-out"
+          className="bg-linear-to-r from-blue-500 to-sky-400 h-2 rounded-full transition-all duration-500 ease-out"
           style={{ width: `${(currentStep / totalSteps) * 100}%` }}
         ></div>
       </div>
@@ -117,7 +117,7 @@ export const LoadingButton = ({
 } & React.ButtonHTMLAttributes<HTMLButtonElement>) => {
   return (
     <button
-      className={`inline-flex items-center justify-center gap-3 px-8 py-4 bg-gradient-to-r from-blue-600 to-sky-400 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none ${className}`}
+      className={`inline-flex items-center justify-center gap-3 px-8 py-4 bg-linear-to-r from-blue-600 to-sky-400 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none ${className}`}
       disabled={isLoading}
       {...props}
     >
@@ -158,7 +158,7 @@ export const ArticleGenerationProgress = ({
       {/* Modal */}
       <div className="relative bg-white rounded-2xl p-8 shadow-2xl border border-gray-200 max-w-2xl w-full animate-fade-in-up">
         <div className="text-center mb-6">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-sky-400 rounded-full mb-4">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-linear-to-br from-blue-500 to-sky-400 rounded-full mb-4">
             <Sparkles className="h-8 w-8 text-white animate-pulse" />
           </div>
           <h3 className="text-2xl font-bold text-gray-800 mb-2">

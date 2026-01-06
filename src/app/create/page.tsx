@@ -5,9 +5,12 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { PenTool, Wand2, Sparkles, Upload } from 'lucide-react'
-import { generateArticle } from '@/app/actions'
+// Calling the generate API directly from the client instead of importing a
+// server action. Importing `generateArticle` (a server-only function) into a
+// client component can cause runtime errors.
 import { useAuth } from '@/hooks/useAuth'
-import ErrorMessage from '@/components/ErrorMessage'
+import { useToastContext } from '@/components/ToastProvider'
+import type { UnsplashImage } from '@/lib/unsplash'
 
 interface GeneratedArticle {
   title: string
@@ -19,13 +22,7 @@ interface GeneratedArticle {
   }>
 }
 
-interface FormState {
-  error?: string
-  success?: boolean
-}
-
 export default function CreatePage() {
-  const [formState, setFormState] = useState<FormState>({})
   const [isPending, setIsPending] = useState(false)
   const [generatedArticle, setGeneratedArticle] = useState<GeneratedArticle | null>(null)
   const [isPublishing, setIsPublishing] = useState(false)
@@ -33,11 +30,11 @@ export default function CreatePage() {
   
   const { isAuthenticated, loading: authLoading } = useAuth()
   const router = useRouter()
+  const toast = useToastContext()
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setIsPending(true)
-    setFormState({})
     setGeneratedArticle(null)
 
     const formData = new FormData(e.currentTarget)
@@ -45,17 +42,39 @@ export default function CreatePage() {
     const text = formData.get('text') as string
     
     try {
-      const result = await generateArticle(text, title)
-      
-      if (result.error) {
-        setFormState({ error: result.error })
-      } else if (result.article) {
-        setGeneratedArticle(result.article)
-        setFormState({ success: true })
+      // Call the Elysia articles generate endpoint
+      const res = await fetch('/api/elysia/articles/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, title })
+      })
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: 'Failed to generate article' }))
+        toast.error(err.error || 'Article Generation Failed', { title: 'Article Generation Failed' })
+        return
       }
+
+      const result = await res.json()
+      const articleData = result.article || result
+
+      const article = {
+        title: articleData.title,
+        content: articleData.content,
+        images: (articleData.images || []).map((img: UnsplashImage, index: number) => ({
+          url: (img as unknown as { url?: string }).url || img.urls?.regular || '',
+          alt: (img as unknown as { alt?: string }).alt || img.alt_description || img.description || 'Article illustration',
+          position: (img as unknown as { position?: number }).position || Math.floor(index * ((articleData.content || '').split('\n\n').length / (articleData.images?.length || 1))) + 1
+        }))
+      }
+
+      setGeneratedArticle(article)
+      toast.success('Article generated successfully! Review and publish when ready.', { title: 'Article Ready' })
     } catch (error) {
       console.error('Article generation error:', error)
-      setFormState({ error: 'An unexpected error occurred. Please try again.' })
+      toast.error('An unexpected error occurred. Please try again.', { 
+        title: 'Generation Error' 
+      })
     } finally {
       setIsPending(false)
     }
@@ -67,6 +86,10 @@ export default function CreatePage() {
     if (!isAuthenticated) {
       // Store the current article in sessionStorage for after auth
       sessionStorage.setItem('pendingArticle', JSON.stringify(generatedArticle))
+      
+      toast.info('Please sign in to publish your article. Your work will be saved.', {
+        title: 'Authentication Required'
+      })
       
       // Redirect to signin with return URL
       const returnUrl = encodeURIComponent(window.location.pathname + window.location.search)
@@ -83,6 +106,7 @@ export default function CreatePage() {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({
           title: generatedArticle.title,
           body: generatedArticle.content,
@@ -101,13 +125,18 @@ export default function CreatePage() {
       // Clear any pending article from storage
       sessionStorage.removeItem('pendingArticle')
       
+      toast.success('Your article has been published successfully!', {
+        title: 'Article Published'
+      })
+      
       // Redirect to home feed after successful publish
       router.push('/home?success=true')
     } catch (error) {
       console.error('Publish error:', error)
-      setFormState({ 
-        error: error instanceof Error ? error.message : 'Failed to publish article. Please try again.' 
-      })
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to publish article. Please try again.',
+        { title: 'Publishing Failed' }
+      )
     } finally {
       setIsPublishing(false)
     }
@@ -121,21 +150,26 @@ export default function CreatePage() {
         try {
           const article = JSON.parse(pendingArticle)
           setGeneratedArticle(article)
-          setFormState({ success: true })
           sessionStorage.removeItem('pendingArticle')
+          toast.success('Welcome back! Your article is ready to publish.', {
+            title: 'Article Restored'
+          })
         } catch (error) {
           console.error('Error restoring pending article:', error)
           sessionStorage.removeItem('pendingArticle')
+          toast.error('Failed to restore your article. Please try generating it again.', {
+            title: 'Restore Failed'
+          })
         }
       }
     }
-  }, [isAuthenticated, authLoading])
+  }, [isAuthenticated, authLoading]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="px-6 py-8">
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-sky-400 bg-clip-text text-transparent mb-2">
+          <h1 className="text-4xl font-bold bg-linear-to-r from-blue-600 to-sky-400 bg-clip-text text-transparent mb-2">
             Create Beautiful Articles
           </h1>
           <p className="text-gray-600">
@@ -146,19 +180,6 @@ export default function CreatePage() {
         {!generatedArticle ? (
           /* Article Creation Form */
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Error Message */}
-            {formState.error && (
-              <ErrorMessage 
-                message={formState.error} 
-                dismissible 
-                onDismiss={() => setFormState(prev => ({ ...prev, error: undefined }))}
-                onRetry={() => {
-                  setFormState({})
-                  setGeneratedArticle(null)
-                }}
-              />
-            )}
-
             {/* Title Input */}
             <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
               <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
@@ -216,7 +237,7 @@ export default function CreatePage() {
               <button
                 type="submit"
                 disabled={isPending}
-                className="px-8 py-4 bg-gradient-to-r from-blue-600 to-sky-500 text-white font-semibold rounded-xl
+                className="px-8 py-4 bg-linear-to-r from-blue-600 to-sky-500 text-white font-semibold rounded-xl
                   hover:from-blue-700 hover:to-sky-600 
                   disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed
                   transition-all duration-200 shadow-lg hover:shadow-xl
@@ -265,15 +286,6 @@ export default function CreatePage() {
               <p className="text-green-600">Your text has been transformed into a beautiful illustrated article.</p>
             </div>
 
-            {/* Publish Error Message */}
-            {formState.error && (
-              <ErrorMessage 
-                message={formState.error} 
-                dismissible 
-                onDismiss={() => setFormState(prev => ({ ...prev, error: undefined }))}
-              />
-            )}
-
             {/* Generated Article */}
             <article className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
               <div className="p-8">
@@ -321,7 +333,6 @@ export default function CreatePage() {
               <button
                 onClick={() => {
                   setGeneratedArticle(null)
-                  setFormState({})
                   setTitleLength(0)
                 }}
                 className="px-6 py-3 bg-gray-100 text-gray-700 font-semibold rounded-xl
@@ -333,7 +344,7 @@ export default function CreatePage() {
               <button
                 onClick={handlePublish}
                 disabled={isPublishing || authLoading}
-                className="px-8 py-3 bg-gradient-to-r from-blue-600 to-sky-500 text-white font-semibold rounded-xl
+                className="px-8 py-3 bg-linear-to-r from-blue-600 to-sky-500 text-white font-semibold rounded-xl
                   hover:from-blue-700 hover:to-sky-600 
                   disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed
                   transition-all duration-200 shadow-lg hover:shadow-xl

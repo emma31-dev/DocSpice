@@ -6,7 +6,8 @@ import {
   articlesListAtom,
   articleCreationAtom,
   isLoadingAtom,
-  errorMessageAtom
+  errorMessageAtom,
+  feedLoadedAtom
 } from '@/atoms'
 import type { Article, ArticleCreationState, GeneratedArticle, ImageLink } from '@/atoms'
 
@@ -15,26 +16,32 @@ export function useArticles() {
   const articlesList = useAtomValue(articlesListAtom)
   const isLoading = useAtomValue(isLoadingAtom)
   const error = useAtomValue(errorMessageAtom)
+  const feedLoaded = useAtomValue(feedLoadedAtom)
   
   const setCurrentArticle = useSetAtom(currentArticleAtom)
   const setArticlesList = useSetAtom(articlesListAtom)
   const setIsLoading = useSetAtom(isLoadingAtom)
   const setError = useSetAtom(errorMessageAtom)
+  const setFeedLoaded = useSetAtom(feedLoadedAtom)
+  const fetchArticles = async (page = 1, limit = 10, force = false) => {
+    // If we've already loaded the first page and caller didn't force, skip fetching again
+    if (page === 1 && !force && feedLoaded) {
+      return { success: true, data: articlesList, pagination: null }
+    }
 
-  const fetchArticles = async (page = 1, limit = 10) => {
     try {
       setIsLoading(true)
       setError(null)
-      
-      const response = await fetch(`/api/articles/feed?page=${page}&limit=${limit}`, {
+
+      const response = await fetch(`/api/elysia/articles/feed?page=${page}&limit=${limit}`, {
         credentials: 'include'
       })
-      
+
       const data = await response.json()
-      
+
       if (response.ok) {
         // Transform the data to match our Article interface
-        const articles: Article[] = data.articles.map((article: {
+        const articles: Article[] = (data.articles || []).map((article: {
           id: string;
           title: string;
           body: string;
@@ -47,8 +54,11 @@ export function useArticles() {
             user_name: article.author_name || 'Unknown'
           }
         }))
-        
+
         setArticlesList(articles)
+        // Mark feed as loaded to prevent repeating requests when page 1 has been fetched
+        if (page === 1) setFeedLoaded(true)
+
         return { success: true, data: articles, pagination: data.pagination }
       } else {
         throw new Error(data.error || 'Failed to fetch articles')
@@ -67,7 +77,7 @@ export function useArticles() {
       setIsLoading(true)
       setError(null)
       
-      const response = await fetch(`/api/articles/${id}`, {
+      const response = await fetch(`/api/elysia/articles/${id}`, {
         credentials: 'include'
       })
       
@@ -100,7 +110,7 @@ export function useArticles() {
       setIsLoading(true)
       setError(null)
       
-      const response = await fetch(`/api/articles/${id}`, {
+      const response = await fetch(`/api/elysia/articles/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
@@ -138,7 +148,7 @@ export function useArticles() {
       setIsLoading(true)
       setError(null)
       
-      const response = await fetch(`/api/articles/${id}`, {
+      const response = await fetch(`/api/elysia/articles/${id}`, {
         method: 'DELETE',
         credentials: 'include'
       })
@@ -186,7 +196,7 @@ export function useArticleCreation() {
     try {
       updateCreationState({ isPublishing: true, publishError: null })
       
-      const response = await fetch('/api/articles/publish', {
+      const response = await fetch('/api/elysia/articles/publish', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

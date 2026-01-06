@@ -2,7 +2,30 @@
 
 import { useState, useRef, useEffect } from 'react'
 import Image from 'next/image'
-import { createIntersectionObserver, preloadImage } from '@/lib/performance'
+
+// Lightweight replacements for the removed performance helpers
+function createIntersectionObserver(cb: IntersectionObserverCallback, options?: IntersectionObserverInit) {
+  if (typeof window !== 'undefined' && 'IntersectionObserver' in window) {
+    return new IntersectionObserver(cb, options)
+  }
+
+  // Fallback stub for environments without IntersectionObserver
+  return {
+    observe: () => {},
+    disconnect: () => {},
+    unobserve: () => {}
+  } as unknown as IntersectionObserver
+}
+
+function preloadImage(src: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (!src) return reject(new Error('No src'))
+    const img = new window.Image()
+    img.onload = () => resolve()
+    img.onerror = () => reject(new Error('Failed to load'))
+    img.src = src
+  })
+}
 
 interface OptimizedImageProps {
   src: string

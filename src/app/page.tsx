@@ -14,7 +14,7 @@ export default function HeroPage() {
           
           <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6 leading-tight">
             Transform Your Text Into
-            <span className="block bg-gradient-to-r from-blue-600 to-sky-400 bg-clip-text text-transparent">
+            <span className="block bg-linear-to-r from-blue-600 to-sky-400 bg-clip-text text-transparent">
               Beautiful Visual Stories
             </span>
           </h1>
@@ -27,7 +27,7 @@ export default function HeroPage() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
             <Link
               href="/create"
-              className="flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-blue-600 to-sky-500 text-white font-semibold rounded-xl
+              className="flex items-center gap-2 px-8 py-4 bg-linear-to-r from-blue-600 to-sky-500 text-white font-semibold rounded-xl
                 hover:from-blue-700 hover:to-sky-600 transition-all duration-200 shadow-lg hover:shadow-xl
                 transform hover:scale-105 text-lg"
             >
@@ -85,7 +85,7 @@ export default function HeroPage() {
         </div>
 
         {/* CTA Section */}
-        <div className="bg-gradient-to-r from-blue-600 to-sky-500 rounded-3xl p-12 text-center text-white">
+        <div className="bg-linear-to-r from-blue-600 to-sky-500 rounded-3xl p-12 text-center text-white">
           <h2 className="text-3xl font-bold mb-4">Ready to Get Started?</h2>
           <p className="text-xl mb-8 opacity-90">
             Join thousands of writers who are already creating beautiful content with DocSpice.
