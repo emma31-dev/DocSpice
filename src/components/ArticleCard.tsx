@@ -93,7 +93,7 @@ export const ArticleCard = memo(function ArticleCard({ article }: ArticleCardPro
 
         {/* Reading time and view count badges */}
         <div className="absolute top-3 right-3 flex gap-2">
-          {article.views !== undefined && article.views > 0 && (
+          {article.views !== undefined && (
             <div className="bg-white/90 backdrop-blur-sm px-2 py-1 rounded-full text-xs font-medium text-gray-600 flex items-center gap-1">
               <Eye className="h-3 w-3" />
               {article.views}

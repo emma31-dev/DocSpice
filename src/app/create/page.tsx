@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { PenTool, Wand2, Sparkles, Upload } from 'lucide-react'
+import { PenTool, Wand2, Sparkles, Upload, Eye } from 'lucide-react'
 // Calling the generate API directly from the client instead of importing a
 // server action. Importing `generateArticle` (a server-only function) into a
 // client component can cause runtime errors.
@@ -20,6 +20,11 @@ interface GeneratedArticle {
     alt: string
     position: number
   }>
+  header?: {
+    author?: string
+    published_at?: string
+    reads?: number
+  }
 }
 
 export default function CreatePage() {
@@ -66,6 +71,8 @@ export default function CreatePage() {
           alt: (img as unknown as { alt?: string }).alt || img.alt_description || img.description || 'Article illustration',
           position: (img as unknown as { position?: number }).position || Math.floor(index * ((articleData.content || '').split('\n\n').length / (articleData.images?.length || 1))) + 1
         }))
+        // preserve header metadata returned from the generate endpoint (if present)
+        header: articleData.header || undefined
       }
 
       setGeneratedArticle(article)
@@ -292,6 +299,21 @@ export default function CreatePage() {
                 <h1 className="text-3xl font-bold text-gray-900 mb-6 leading-tight">
                   {generatedArticle.title}
                 </h1>
+                {/* Preview header: author, published date, reads (if available) */}
+                <div className="flex items-center gap-4 text-sm text-gray-600 mb-4">
+                  <div className="font-medium text-gray-800">
+                    {generatedArticle.header?.author || 'Preview Author'}
+                  </div>
+                  <time className="text-gray-500">
+                    {new Date(generatedArticle.header?.published_at || Date.now()).toLocaleDateString('en-US', {
+                      year: 'numeric', month: 'short', day: 'numeric'
+                    })}
+                  </time>
+                  <div className="flex items-center gap-1 text-gray-500">
+                    <Eye className="h-4 w-4" />
+                    <span>{generatedArticle.header?.reads ?? 0} reads</span>
+                  </div>
+                </div>
                 
                 <div className="prose prose-lg max-w-none">
                   {generatedArticle.content.split('\n\n').map((paragraph, index) => {

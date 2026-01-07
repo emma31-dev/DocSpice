@@ -1,6 +1,7 @@
 'use client'
 
 import { useAtom, useAtomValue, useSetAtom } from 'jotai'
+import { useCallback } from 'react'
 import {
   currentArticleAtom,
   articlesListAtom,
@@ -23,7 +24,7 @@ export function useArticles() {
   const setIsLoading = useSetAtom(isLoadingAtom)
   const setError = useSetAtom(errorMessageAtom)
   const setFeedLoaded = useSetAtom(feedLoadedAtom)
-  const fetchArticles = async (page = 1, limit = 10, force = false) => {
+  const fetchArticles = useCallback(async (page = 1, limit = 10, force = false) => {
     // If we've already loaded the first page and caller didn't force, skip fetching again
     if (page === 1 && !force && feedLoaded) {
       return { success: true, data: articlesList, pagination: null }
@@ -41,18 +42,12 @@ export function useArticles() {
 
       if (response.ok) {
         // Transform the data to match our Article interface
-        const articles: Article[] = (data.articles || []).map((article: {
-          id: string;
-          title: string;
-          body: string;
-          image_links: ImageLink[];
-          created_at: string;
-          author_name?: string;
-        }) => ({
+        const articles: Article[] = (data.articles || []).map((article: any) => ({
           ...article,
           author: {
-            user_name: article.author_name || 'Unknown'
-          }
+            user_name: (article.author && article.author.user_name) || article.author_name || 'Unknown'
+          },
+          views: article.views ?? article.view_count ?? article.views_count ?? 0
         }))
 
         setArticlesList(articles)
@@ -70,9 +65,9 @@ export function useArticles() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [feedLoaded, articlesList, setIsLoading, setError, setArticlesList, setFeedLoaded])
 
-  const fetchArticleById = async (id: string) => {
+  const fetchArticleById = useCallback(async (id: string) => {
     try {
       setIsLoading(true)
       setError(null)
@@ -87,8 +82,9 @@ export function useArticles() {
         const article: Article = {
           ...data.article,
           author: {
-            user_name: data.article.author_name || 'Unknown'
-          }
+            user_name: (data.article.author && data.article.author.user_name) || data.article.author_name || 'Unknown'
+          },
+          views: data.article.views ?? 0
         }
         
         setCurrentArticle(article)
@@ -103,9 +99,9 @@ export function useArticles() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [setIsLoading, setError, setCurrentArticle])
 
-  const updateArticle = async (id: string, updates: { title: string; body: string; image_links: ImageLink[] }) => {
+  const updateArticle = useCallback(async (id: string, updates: { title: string; body: string; image_links: ImageLink[] }) => {
     try {
       setIsLoading(true)
       setError(null)
@@ -125,8 +121,9 @@ export function useArticles() {
         const article: Article = {
           ...data.article,
           author: {
-            user_name: data.article.author_name || 'Unknown'
-          }
+            user_name: (data.article.author && data.article.author.user_name) || data.article.author_name || 'Unknown'
+          },
+          views: data.article.views ?? 0
         }
         
         setCurrentArticle(article)
@@ -141,9 +138,9 @@ export function useArticles() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [setIsLoading, setError, setCurrentArticle])
 
-  const deleteArticle = async (id: string) => {
+  const deleteArticle = useCallback(async (id: string) => {
     try {
       setIsLoading(true)
       setError(null)
@@ -169,7 +166,7 @@ export function useArticles() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [setIsLoading, setError, setArticlesList])
 
   return {
     currentArticle,

@@ -41,12 +41,25 @@ export const articleRoutes = new Elysia({ prefix: '/articles' })
         return { error: 'Failed to publish article: ' + insertError.message }
       }
 
+      // Resolve author display name (if available) for response
+      let authorName: string | null = null
+      try {
+        const { data: profile } = await supabase.from('profiles').select('user_name').eq('id', user.id).single()
+        authorName = (profile as any)?.user_name || (user.user_metadata as any)?.full_name || user.email || null
+      } catch (e) {
+        authorName = (user.user_metadata as any)?.full_name || user.email || null
+      }
+
       return {
         message: 'Article published successfully',
         article: {
           id: article.id,
           title: article.title,
-          created_at: article.created_at
+          created_at: article.created_at,
+          views: article.views ?? 0,
+          author: {
+            user_name: authorName
+          }
         }
       }
     } catch (error) {
@@ -78,6 +91,18 @@ export const articleRoutes = new Elysia({ prefix: '/articles' })
         return { error: 'Text is required and should be at least 20 characters' }
       }
 
+      // Attempt to resolve a preview author from the current auth session (optional)
+      const supabase = await createClient()
+      let authorName = 'Preview Author'
+      try {
+        const { data: { user }, error: authError } = await supabase.auth.getUser()
+        if (!authError && user) {
+          authorName = (user.user_metadata as any)?.full_name || (user.user_metadata as any)?.name || user.email || 'Preview Author'
+        }
+      } catch (e) {
+        // Ignore auth resolution errors for preview; keep default authorName
+      }
+
       const analysis = analyzeText(text)
       const queries = generateImageSearchQueries(analysis)
 
@@ -94,7 +119,13 @@ export const articleRoutes = new Elysia({ prefix: '/articles' })
           alt: img.alt_description || img.description || 'Article illustration',
           position: Math.floor(index * ((text.split('\n\n') || []).length / (arr.length || 1))) + 1,
           unsplash_id: img.id || null
-        }))
+        })),
+        // Structured preview header replacing the static preview text
+        header: {
+          author: authorName,
+          published_at: new Date().toISOString(),
+          reads: 0
+        }
       }
 
       return { article }
@@ -146,6 +177,7 @@ export const articleRoutes = new Elysia({ prefix: '/articles' })
 
       // If articles were fetched, try to resolve author display names from `profiles`
       let articlesWithAuthor: unknown[] = (articles || [])
+      let profileMap: Record<string, { id: string; user_name?: string } | undefined> = {}
 
       try {
         const userIds = Array.from(new Set((articlesWithAuthor || []).map((a: unknown) => (a as { created_by?: string }).created_by).filter(Boolean)))
@@ -155,20 +187,27 @@ export const articleRoutes = new Elysia({ prefix: '/articles' })
             .select('id, user_name')
             .in('id', userIds)
 
-          const profileMap: Record<string, { id: string; user_name?: string } | undefined> = {}
           ;(profiles || []).forEach((p: unknown) => { const pr = p as { id: string; user_name?: string }; profileMap[pr.id] = pr })
-
-          articlesWithAuthor = (articlesWithAuthor || []).map((a: unknown) => {
-            const createdBy = (a as { created_by?: string }).created_by
-            return {
-              ...(a as Record<string, unknown>),
-              author_name: createdBy ? profileMap[createdBy]?.user_name || null : null
-            }
-          })
         }
       } catch (err) {
         console.warn('Failed to resolve author names for articles feed', err)
       }
+
+      // Normalize articles to include `author` object and `views`
+      articlesWithAuthor = (articlesWithAuthor || []).map((a: any) => {
+        const createdBy = a.created_by
+        return {
+          id: a.id,
+          title: a.title,
+          body: a.body,
+          image_links: a.image_links,
+          created_at: a.created_at,
+          views: a.views ?? 0,
+          author: {
+            user_name: createdBy ? profileMap?.[createdBy]?.user_name || null : null
+          }
+        }
+      })
 
       set.status = 200
       return {
@@ -226,12 +265,23 @@ export const articleRoutes = new Elysia({ prefix: '/articles' })
         return { error: 'Failed to fetch article' }
       }
 
-      article.views = article.views + 1;
-      await supabase.from('articles').update({ views: article.views }).eq('id', id);
+      article.views = (article.views || 0) + 1
+      await supabase.from('articles').update({ views: article.views }).eq('id', id)
+
+      // Resolve author display name for this article
+      let authorName: string | null = null
+      try {
+        const { data: profile } = await supabase.from('profiles').select('user_name').eq('id', article.created_by).single()
+        authorName = (profile as any)?.user_name || null
+      } catch (e) {
+        authorName = null
+      }
 
       return { 
         article: {
           ...article,
+          views: article.views ?? 0,
+          author: { user_name: authorName },
           word_count: article.body ? article.body.split(/\s+/).length : 0,
           reading_time: article.body ? Math.ceil(article.body.split(/\s+/).length / 200) : 0
         }
@@ -315,7 +365,7 @@ export const articleRoutes = new Elysia({ prefix: '/articles' })
           updated_at: new Date().toISOString()
         })
         .eq('id', id)
-        .select()
+        .select('id, title, body, image_links, created_by, created_at, updated_at, views')
         .single()
 
       if (updateError) {
@@ -324,10 +374,21 @@ export const articleRoutes = new Elysia({ prefix: '/articles' })
         return { error: 'Failed to update article: ' + updateError.message }
       }
 
+      // Resolve author display name
+      let authorName: string | null = null
+      try {
+        const { data: profile } = await supabase.from('profiles').select('user_name').eq('id', article.created_by).single()
+        authorName = (profile as any)?.user_name || null
+      } catch (e) {
+        authorName = null
+      }
+
       return {
         message: 'Article updated successfully',
         article: {
           ...article,
+          views: article.views ?? 0,
+          author: { user_name: authorName },
           word_count: article.body ? article.body.split(/\s+/).length : 0,
           reading_time: article.body ? Math.ceil(article.body.split(/\s+/).length / 200) : 0
         }
