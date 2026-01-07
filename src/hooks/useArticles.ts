@@ -12,6 +12,16 @@ import {
 } from '@/atoms'
 import type { Article, ArticleCreationState, GeneratedArticle, ImageLink } from '@/atoms'
 
+// Backend can return slightly different shapes (legacy fields or alternate image keys)
+type RawArticle = Article & {
+  author_name?: string
+  author_email?: string
+  images?: ImageLink[]
+  preview_images?: ImageLink[]
+  view_count?: number
+  views_count?: number
+}
+
 export function useArticles() {
   const currentArticle = useAtomValue(currentArticleAtom)
   const articlesList = useAtomValue(articlesListAtom)
@@ -42,10 +52,10 @@ export function useArticles() {
 
       if (response.ok) {
         // Transform the data to match our Article interface
-        const articles: Article[] = (data.articles || []).map((article: any) => ({
+        const articles: Article[] = (data.articles || []).map((article: RawArticle) => ({
           ...article,
           author: {
-            user_name: (article.author && article.author.user_name) || article.author_name || 'Unknown'
+            user_name: (article.author && article.author.user_name) || (article.created_by ? article.created_by.slice(0, 8) : (article.author_name || 'Unknown'))
           },
           views: article.views ?? article.view_count ?? article.views_count ?? 0
         }))
@@ -82,7 +92,7 @@ export function useArticles() {
         const article: Article = {
           ...data.article,
           author: {
-            user_name: (data.article.author && data.article.author.user_name) || data.article.author_name || 'Unknown'
+            user_name: (data.article.author && data.article.author.user_name) || (data.article.created_by ? (data.article.created_by as string).slice(0,8) : (data.article.author_name || 'Unknown'))
           },
           views: data.article.views ?? 0
         }
@@ -121,7 +131,7 @@ export function useArticles() {
         const article: Article = {
           ...data.article,
           author: {
-            user_name: (data.article.author && data.article.author.user_name) || data.article.author_name || 'Unknown'
+            user_name: (data.article.author && data.article.author.user_name) || (data.article.created_by ? (data.article.created_by as string).slice(0,8) : (data.article.author_name || 'Unknown'))
           },
           views: data.article.views ?? 0
         }

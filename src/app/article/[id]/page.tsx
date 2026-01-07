@@ -35,7 +35,6 @@ export default function ArticlePage() {
     };
 
     loadArticle();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.id, fetchArticleById]);
 
   if (isLoading) {
@@ -85,8 +84,14 @@ export default function ArticlePage() {
     <div className="px-6 py-8">
         <div className="max-w-4xl mx-auto">
             <div className="text-center mb-8">
-              <div className="flex justify-center items-center space-x-4 text-sm text-gray-500">
-                <span>By {currentArticle.author?.user_name || currentArticle.author_name || (currentArticle.author_email ? currentArticle.author_email.split('@')[0] : 'Anonymous')}</span>
+                <div className="flex justify-center items-center space-x-4 text-sm text-gray-500">
+                    {(() => {
+                      const fallbackAuthorName = (currentArticle as unknown as Record<string, unknown>)['author_name'] as string | undefined
+                      const fallbackAuthorEmail = (currentArticle as unknown as Record<string, unknown>)['author_email'] as string | undefined
+                        return (
+                          <span>By {currentArticle.author?.user_name || (currentArticle.created_by ? currentArticle.created_by.slice(0,8) : fallbackAuthorName || (fallbackAuthorEmail ? fallbackAuthorEmail.split('@')[0] : 'Anonymous'))}</span>
+                      )
+                    })()}
                 <span>&bull;</span>
                 <span>{new Date(currentArticle.created_at).toLocaleDateString()}</span>
                 <span>&bull;</span>

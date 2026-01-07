@@ -18,10 +18,10 @@ export const userRoutes = new Elysia({ prefix: "/user" })
 
       const supabase = await createClient()
 
-      // Get user profile info
+      // Get user profile info (prefer `user_name` which other routes use)
       const { data: userProfile, error: userError } = await supabase
         .from('profiles')
-        .select('id, full_name, avatar_url, created_at')
+        .select('id, user_name, avatar_url, created_at')
         .eq('id', userId)
         .single()
 
@@ -31,10 +31,10 @@ export const userRoutes = new Elysia({ prefix: "/user" })
         return { error: 'User not found' }
       }
 
-      // Get articles by specific user
+      // Get articles by specific user (select created_by and resolve profile locally)
       const { data: articles, error } = await supabase
-        .from('articles_with_author')
-        .select('id, title, body, image_links, created_at, updated_at, author_name')
+        .from('articles')
+        .select('id, title, body, image_links, created_at, updated_at, created_by, views')
         .eq('created_by', userId)
         .order('created_at', { ascending: false })
         .range(offset, offset + limit - 1)
@@ -55,13 +55,30 @@ export const userRoutes = new Elysia({ prefix: "/user" })
         console.warn('Count fetch error:', countError)
       }
 
+      // Strongly-type the profile and article rows to satisfy lint rules
+      type ProfileRow = { id: string; user_name?: string; avatar_url?: string; created_at?: string }
+      type ArticleRow = { id: string; title: string; body?: string; image_links?: unknown; created_at?: string; views?: number }
+
+      const profile = userProfile as ProfileRow
+
+      // Map articles to include author display name
+      const mapped = (articles || []).map((a: ArticleRow) => ({
+        id: a.id,
+        title: a.title,
+        body: a.body,
+        image_links: a.image_links as unknown,
+        created_at: a.created_at,
+        views: a.views ?? 0,
+        author: {
+          user_name: profile?.user_name || profile.id
+        },
+        word_count: a.body ? a.body.split(/\s+/).length : 0,
+        reading_time: a.body ? Math.ceil(a.body.split(/\s+/).length / 200) : 0
+      }))
+
       return {
         user: userProfile,
-        articles: articles?.map(article => ({
-          ...article,
-          word_count: article.body ? article.body.split(/\s+/).length : 0,
-          reading_time: article.body ? Math.ceil(article.body.split(/\s+/).length / 200) : 0
-        })) || [],
+        articles: mapped,
         pagination: {
           page,
           limit,

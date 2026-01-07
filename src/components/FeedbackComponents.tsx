@@ -83,7 +83,7 @@ export function Toast({
       ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0'}
     `}>
       <div className="flex items-start gap-3">
-        <Icon className={`h-5 w-5 mt-0.5 flex-shrink-0 ${config.iconColor}`} />
+        <Icon className={`h-5 w-5 mt-0.5 shrink-0 ${config.iconColor}`} />
         
         <div className="flex-1 min-w-0">
           {title && (

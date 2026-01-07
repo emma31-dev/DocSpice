@@ -26,6 +26,7 @@ interface Article {
   // Legacy support for direct properties
   author_name?: string
   author_email?: string
+  created_by?: string
   featured_image?: ImageLink | null
 }
 
@@ -88,9 +89,9 @@ export const ArticleCard = memo(function ArticleCard({ article }: ArticleCardPro
         {featuredImage && (
           <div className="absolute left-3 bottom-3 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-medium text-gray-700 flex items-center gap-2">
             <div className="w-6 h-6 rounded-full bg-linear-to-br from-blue-500 to-sky-400 text-white flex items-center justify-center text-xs font-semibold">
-              {(article.author?.user_name || article.author_name || article.author_email)?.charAt(0).toUpperCase() || 'U'}
+              {(article.author?.user_name || (article.created_by ? article.created_by.slice(0,8) : undefined) || article.author_email)?.charAt(0).toUpperCase() || 'U'}
             </div>
-            <span className="truncate max-w-[10rem]">{article.author?.user_name || article.author_name || article.author_email?.split('@')[0] || 'Anonymous'}</span>
+            <span className="truncate max-w-40">{article.author?.user_name || (article.created_by ? article.created_by.slice(0,8) : undefined) || article.author_email?.split('@')[0] || 'Anonymous'}</span>
           </div>
         )}
 
@@ -122,12 +123,12 @@ export const ArticleCard = memo(function ArticleCard({ article }: ArticleCardPro
         
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-linear-to-br from-blue-500 to-sky-400 rounded-full flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
-              {(article.author?.user_name || article.author_name || article.author_email)?.charAt(0).toUpperCase() || 'U'}
+            <div className="w-8 h-8 bg-linear-to-br from-blue-500 to-sky-400 rounded-full flex items-center justify-center text-white text-sm font-semibold shrink-0">
+              {(article.author?.user_name || (article.created_by ? article.created_by.slice(0,8) : undefined) || article.author_email)?.charAt(0).toUpperCase() || 'U'}
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-sm font-medium text-gray-800 truncate">
-                {article.author?.user_name || article.author_name || article.author_email?.split('@')[0] || 'Anonymous'}
+                {article.author?.user_name || (article.created_by ? article.created_by.slice(0,8) : undefined) || article.author_email?.split('@')[0] || 'Anonymous'}
               </p>
               <time dateTime={article.created_at} className="text-xs text-gray-500">
                 {formattedDate}
@@ -137,7 +138,7 @@ export const ArticleCard = memo(function ArticleCard({ article }: ArticleCardPro
           
           <Link
             href={`/article/${article.id}`}
-            className="text-blue-600 hover:text-blue-700 font-medium text-sm transition-colors hover:underline flex-shrink-0 ml-2"
+            className="text-blue-600 hover:text-blue-700 font-medium text-sm transition-colors hover:underline shrink-0 ml-2"
           >
             Read More
           </Link>

@@ -2,6 +2,7 @@ import { Elysia, t } from 'elysia'
 import { createClient } from '@/lib/supabase/server'
 import { analyzeText, generateImageSearchQueries } from '@/lib/textAnalysis'
 import { searchImagesForQueries, getFallbackImages, UnsplashImage } from '@/lib/unsplash'
+import type { ImageLink } from '@/atoms'
 
 export const articleRoutes = new Elysia({ prefix: '/articles' })
   .post('/publish', async ({ body, set }) => {
@@ -45,9 +46,10 @@ export const articleRoutes = new Elysia({ prefix: '/articles' })
       let authorName: string | null = null
       try {
         const { data: profile } = await supabase.from('profiles').select('user_name').eq('id', user.id).single()
-        authorName = (profile as any)?.user_name || (user.user_metadata as any)?.full_name || user.email || null
-      } catch (e) {
-        authorName = (user.user_metadata as any)?.full_name || user.email || null
+        authorName = (profile as { user_name?: string } | null)?.user_name || (user.user_metadata as { full_name?: string } | undefined)?.full_name || user.email || null
+      } catch (err) {
+        authorName = (user.user_metadata as { full_name?: string } | undefined)?.full_name || user.email || null
+        console.warn('Failed to resolve profile for publish response', err)
       }
 
       return {
@@ -97,10 +99,11 @@ export const articleRoutes = new Elysia({ prefix: '/articles' })
       try {
         const { data: { user }, error: authError } = await supabase.auth.getUser()
         if (!authError && user) {
-          authorName = (user.user_metadata as any)?.full_name || (user.user_metadata as any)?.name || user.email || 'Preview Author'
+          authorName = (user.user_metadata as { full_name?: string; name?: string } | undefined)?.full_name || (user.user_metadata as { full_name?: string; name?: string } | undefined)?.name || user.email || 'Preview Author'
         }
-      } catch (e) {
+      } catch (err) {
         // Ignore auth resolution errors for preview; keep default authorName
+        console.warn('Preview author resolution failed', err)
       }
 
       const analysis = analyzeText(text)
@@ -177,7 +180,7 @@ export const articleRoutes = new Elysia({ prefix: '/articles' })
 
       // If articles were fetched, try to resolve author display names from `profiles`
       let articlesWithAuthor: unknown[] = (articles || [])
-      let profileMap: Record<string, { id: string; user_name?: string } | undefined> = {}
+      const profileMap: Record<string, { id: string; user_name?: string } | undefined> = {}
 
       try {
         const userIds = Array.from(new Set((articlesWithAuthor || []).map((a: unknown) => (a as { created_by?: string }).created_by).filter(Boolean)))
@@ -194,15 +197,16 @@ export const articleRoutes = new Elysia({ prefix: '/articles' })
       }
 
       // Normalize articles to include `author` object and `views`
-      articlesWithAuthor = (articlesWithAuthor || []).map((a: any) => {
-        const createdBy = a.created_by
+      articlesWithAuthor = (articlesWithAuthor || []).map((a) => {
+        const row = a as { id: string; title: string; body: string; image_links?: ImageLink[]; created_at: string; created_by?: string; views?: number }
+        const createdBy = row.created_by
         return {
-          id: a.id,
-          title: a.title,
-          body: a.body,
-          image_links: a.image_links,
-          created_at: a.created_at,
-          views: a.views ?? 0,
+          id: row.id,
+          title: row.title,
+          body: row.body,
+          image_links: row.image_links,
+          created_at: row.created_at,
+          views: row.views ?? 0,
           author: {
             user_name: createdBy ? profileMap?.[createdBy]?.user_name || null : null
           }
@@ -272,9 +276,10 @@ export const articleRoutes = new Elysia({ prefix: '/articles' })
       let authorName: string | null = null
       try {
         const { data: profile } = await supabase.from('profiles').select('user_name').eq('id', article.created_by).single()
-        authorName = (profile as any)?.user_name || null
-      } catch (e) {
+        authorName = (profile as { user_name?: string } | null)?.user_name || null
+      } catch (err) {
         authorName = null
+        console.warn('Failed to resolve profile for article id', id, err)
       }
 
       return { 
@@ -378,9 +383,10 @@ export const articleRoutes = new Elysia({ prefix: '/articles' })
       let authorName: string | null = null
       try {
         const { data: profile } = await supabase.from('profiles').select('user_name').eq('id', article.created_by).single()
-        authorName = (profile as any)?.user_name || null
-      } catch (e) {
+        authorName = (profile as { user_name?: string } | null)?.user_name || null
+      } catch (err) {
         authorName = null
+        console.warn('Failed to resolve profile after update for article id', id, err)
       }
 
       return {

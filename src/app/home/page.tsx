@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import { useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -10,6 +10,15 @@ import { Spinner } from '@/components/LoadingComponents';
 import { useToastContext } from '@/components/ToastProvider';
 import Link from 'next/link';
 import { PenTool, Plus } from 'lucide-react';
+import type { Article, ImageLink } from '@/atoms'
+
+type RawArticle = Article & {
+  images?: ImageLink[]
+  preview_images?: ImageLink[]
+  featured_image?: ImageLink | null
+  author_name?: string
+  author_email?: string
+}
 
 function HomePageContent() {
   const router = useRouter();
@@ -103,7 +112,7 @@ function HomePageContent() {
             </p>
             <Link
               href="/create"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-sky-500 text-white font-semibold rounded-xl
+              className="inline-flex items-center gap-2 px-6 py-3 bg-gradient from-blue-600 to-sky-500 text-white font-semibold rounded-xl
                 hover:from-blue-700 hover:to-sky-600 transition-all duration-200 shadow-lg hover:shadow-xl"
             >
               <Plus className="h-5 w-5" />
@@ -124,15 +133,15 @@ function HomePageContent() {
 
             {/* Ensure each article has `image_links` populated (use first available images array) */}
             {(() => {
-              const normalized = (articlesList || []).map(a => {
+              const normalized = (articlesList || []).map((a: RawArticle) => {
                 // Prefer `image_links`, then `images`, then `preview_images`
-                const imageLinks = (a.image_links && a.image_links.length && a.image_links) ||
-                  ((a as any).images && (a as any).images.length && (a as any).images) ||
-                  ((a as any).preview_images && (a as any).preview_images.length && (a as any).preview_images) ||
+                const imageLinks: ImageLink[] = (a.image_links && a.image_links.length && a.image_links) ||
+                  (a.images && a.images.length && a.images) ||
+                  (a.preview_images && a.preview_images.length && a.preview_images) ||
                   []
 
                 // Select a single featured image (first available) for quick card rendering
-                const first = (imageLinks && imageLinks.length > 0) ? imageLinks[0] : null
+                const first: ImageLink | null = (imageLinks && imageLinks.length > 0) ? imageLinks[0] : null
 
                 return { ...a, image_links: imageLinks, featured_image: first }
               })
