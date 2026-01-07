@@ -71,6 +71,7 @@ export default function CreatePage() {
           alt: (img as unknown as { alt?: string }).alt || img.alt_description || img.description || 'Article illustration',
           position: (img as unknown as { position?: number }).position || Math.floor(index * ((articleData.content || '').split('\n\n').length / (articleData.images?.length || 1))) + 1
         }))
+        ,
         // preserve header metadata returned from the generate endpoint (if present)
         header: articleData.header || undefined
       }

@@ -122,7 +122,23 @@ function HomePageContent() {
               </p>
             </div>
 
-            <ArticleGrid articles={articlesList} />
+            {/* Ensure each article has `image_links` populated (use first available images array) */}
+            {(() => {
+              const normalized = (articlesList || []).map(a => {
+                // Prefer `image_links`, then `images`, then `preview_images`
+                const imageLinks = (a.image_links && a.image_links.length && a.image_links) ||
+                  ((a as any).images && (a as any).images.length && (a as any).images) ||
+                  ((a as any).preview_images && (a as any).preview_images.length && (a as any).preview_images) ||
+                  []
+
+                // Select a single featured image (first available) for quick card rendering
+                const first = (imageLinks && imageLinks.length > 0) ? imageLinks[0] : null
+
+                return { ...a, image_links: imageLinks, featured_image: first }
+              })
+
+              return <ArticleGrid articles={normalized} />
+            })()}
 
             {/* Load More Section (Placeholder for future pagination) */}
             {articlesList.length >= 10 && (

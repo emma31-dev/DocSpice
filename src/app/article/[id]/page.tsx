@@ -77,7 +77,8 @@ export default function ArticlePage() {
     );
   }
 
-  const paragraphs = currentArticle.body.split('\n').filter((p: string) => p.trim().length > 0);
+  // Split into paragraphs by double newlines to match the generator's behavior
+  const paragraphs = (currentArticle.body || '').split('\n\n').map((p: string) => p.trim()).filter((p: string) => p.length > 0);
   const images = currentArticle.image_links as ImageLink[] || [];
 
   return (

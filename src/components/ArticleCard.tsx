@@ -26,6 +26,7 @@ interface Article {
   // Legacy support for direct properties
   author_name?: string
   author_email?: string
+  featured_image?: ImageLink | null
 }
 
 interface ArticleCardProps {
@@ -36,6 +37,8 @@ interface ArticleCardProps {
 export const ArticleCard = memo(function ArticleCard({ article }: ArticleCardProps) {
   // Choose a featured image from available fields (compatibility across responses)
   const featuredImage = (
+    // Prefer `featured_image` if provided (normalized by feed)
+    (article.featured_image && article.featured_image) ||
     (article.image_links && article.image_links.length && article.image_links[0]) ||
     // some endpoints might return `preview_images` or `images`
     ((article as unknown as { preview_images?: ImageLink[] }).preview_images && (article as unknown as { preview_images?: ImageLink[] }).preview_images![0]) ||
