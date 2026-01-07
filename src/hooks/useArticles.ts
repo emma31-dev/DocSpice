@@ -28,7 +28,7 @@ export function useArticles() {
   const isLoading = useAtomValue(isLoadingAtom)
   const error = useAtomValue(errorMessageAtom)
   const feedLoaded = useAtomValue(feedLoadedAtom)
-  
+
   const setCurrentArticle = useSetAtom(currentArticleAtom)
   const setArticlesList = useSetAtom(articlesListAtom)
   const setIsLoading = useSetAtom(isLoadingAtom)
@@ -81,22 +81,22 @@ export function useArticles() {
     try {
       setIsLoading(true)
       setError(null)
-      
+
       const response = await fetch(`/api/elysia/articles/${id}`, {
         credentials: 'include'
       })
-      
+
       const data = await response.json()
-      
+
       if (response.ok) {
         const article: Article = {
           ...data.article,
           author: {
-            user_name: (data.article.author && data.article.author.user_name) || (data.article.created_by ? (data.article.created_by as string).slice(0,8) : (data.article.author_name || 'Unknown'))
+            user_name: (data.article.author && data.article.author.user_name) || (data.article.created_by ? (data.article.created_by as string).slice(0, 8) : (data.article.author_name || 'Unknown'))
           },
           views: data.article.views ?? 0
         }
-        
+
         setCurrentArticle(article)
         return { success: true, data: article }
       } else {
@@ -115,7 +115,7 @@ export function useArticles() {
     try {
       setIsLoading(true)
       setError(null)
-      
+
       const response = await fetch(`/api/elysia/articles/${id}`, {
         method: 'PUT',
         headers: {
@@ -124,18 +124,18 @@ export function useArticles() {
         credentials: 'include',
         body: JSON.stringify(updates)
       })
-      
+
       const data = await response.json()
-      
+
       if (response.ok) {
         const article: Article = {
           ...data.article,
           author: {
-            user_name: (data.article.author && data.article.author.user_name) || (data.article.created_by ? (data.article.created_by as string).slice(0,8) : (data.article.author_name || 'Unknown'))
+            user_name: (data.article.author && data.article.author.user_name) || (data.article.created_by ? (data.article.created_by as string).slice(0, 8) : (data.article.author_name || 'Unknown'))
           },
           views: data.article.views ?? 0
         }
-        
+
         setCurrentArticle(article)
         return { success: true, data: article }
       } else {
@@ -154,14 +154,14 @@ export function useArticles() {
     try {
       setIsLoading(true)
       setError(null)
-      
+
       const response = await fetch(`/api/elysia/articles/${id}`, {
         method: 'DELETE',
         credentials: 'include'
       })
-      
+
       const data = await response.json()
-      
+
       if (response.ok) {
         // Remove from articles list if it exists
         setArticlesList(prev => prev.filter(article => article.id !== id))
@@ -194,7 +194,7 @@ export function useArticles() {
 
 export function useArticleCreation() {
   const [creationState, setCreationState] = useAtom(articleCreationAtom)
-  
+
   const updateCreationState = (updates: Partial<ArticleCreationState>) => {
     setCreationState(prev => ({ ...prev, ...updates }))
   }
@@ -202,7 +202,7 @@ export function useArticleCreation() {
   const publishArticle = async (generatedArticle: GeneratedArticle) => {
     try {
       updateCreationState({ isPublishing: true, publishError: null })
-      
+
       const response = await fetch('/api/elysia/articles/publish', {
         method: 'POST',
         headers: {
@@ -215,26 +215,26 @@ export function useArticleCreation() {
           image_links: generatedArticle.images
         })
       })
-      
+
       const data = await response.json()
-      
+
       if (response.ok) {
-        updateCreationState({ 
-          isPublishing: false, 
+        updateCreationState({
+          isPublishing: false,
           publishError: null,
           generatedArticle: null,
           content: ''
         })
-        
+
         return { success: true, data: data.article }
       } else {
         throw new Error(data.error || 'Failed to publish article')
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to publish article'
-      updateCreationState({ 
-        isPublishing: false, 
-        publishError: errorMessage 
+      updateCreationState({
+        isPublishing: false,
+        publishError: errorMessage
       })
       return { success: false, error: errorMessage }
     }

@@ -8,7 +8,7 @@ export const userRoutes = new Elysia({ prefix: "/user" })
       const { userId } = params
       const { page = 1, limit = 10 } = query
       const offset = (page - 1) * limit
-      
+
       // Validate UUID format
       const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
       if (!uuidRegex.test(userId)) {
@@ -109,7 +109,7 @@ export const userRoutes = new Elysia({ prefix: "/user" })
   .get('/search', async ({ query, set }) => {
     try {
       const { q, limit = 10 } = query
-      
+
       if (!q || q.trim().length < 2) {
         set.status = 400
         return { error: 'Search query must be at least 2 characters' }

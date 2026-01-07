@@ -12,7 +12,7 @@ export const articleRoutes = new Elysia({ prefix: '/articles' })
 
       // Check authentication
       const { data: { user }, error: authError } = await supabase.auth.getUser()
-      
+
       if (authError || !user) {
         set.status = 401
         return { error: 'Authentication required' }
@@ -146,13 +146,13 @@ export const articleRoutes = new Elysia({ prefix: '/articles' })
     try {
       const page = typeof query.page === 'string' ? parseInt(query.page, 10) : (query.page || 1)
       const limit = typeof query.limit === 'string' ? parseInt(query.limit, 10) : (query.limit || 10)
-      
+
       // Validate pagination parameters
       if (page < 1 || limit < 1 || limit > 50) {
         set.status = 400
         return { error: 'Invalid pagination parameters' }
       }
-      
+
       const offset = (page - 1) * limit
       const supabase = await createClient()
 
@@ -190,7 +190,7 @@ export const articleRoutes = new Elysia({ prefix: '/articles' })
             .select('id, user_name')
             .in('id', userIds)
 
-          ;(profiles || []).forEach((p: unknown) => { const pr = p as { id: string; user_name?: string }; profileMap[pr.id] = pr })
+            ; (profiles || []).forEach((p: unknown) => { const pr = p as { id: string; user_name?: string }; profileMap[pr.id] = pr })
         }
       } catch (err) {
         console.warn('Failed to resolve author names for articles feed', err)
@@ -243,7 +243,7 @@ export const articleRoutes = new Elysia({ prefix: '/articles' })
   .get('/:id', async ({ params, set }) => {
     try {
       const { id } = params
-      
+
       // Validate UUID format
       const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
       if (!uuidRegex.test(id)) {
@@ -282,7 +282,7 @@ export const articleRoutes = new Elysia({ prefix: '/articles' })
         console.warn('Failed to resolve profile for article id', id, err)
       }
 
-      return { 
+      return {
         article: {
           ...article,
           views: article.views ?? 0,
@@ -311,7 +311,7 @@ export const articleRoutes = new Elysia({ prefix: '/articles' })
     try {
       const { id } = params
       const { title, body: articleBody, image_links } = body
-      
+
       // Validate UUID format
       const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
       if (!uuidRegex.test(id)) {
@@ -323,7 +323,7 @@ export const articleRoutes = new Elysia({ prefix: '/articles' })
 
       // Check authentication
       const { data: { user }, error: authError } = await supabase.auth.getUser()
-      
+
       if (authError || !user) {
         set.status = 401
         return { error: 'Authentication required' }
@@ -351,9 +351,9 @@ export const articleRoutes = new Elysia({ prefix: '/articles' })
       }
 
       // Check if there are actual changes
-      const hasChanges = existingArticle.title !== title || 
-                        existingArticle.body !== articleBody ||
-                        JSON.stringify(existingArticle.image_links) !== JSON.stringify(image_links)
+      const hasChanges = existingArticle.title !== title ||
+        existingArticle.body !== articleBody ||
+        JSON.stringify(existingArticle.image_links) !== JSON.stringify(image_links)
 
       if (!hasChanges) {
         set.status = 200
@@ -428,7 +428,7 @@ export const articleRoutes = new Elysia({ prefix: '/articles' })
   .delete('/:id', async ({ params, set }) => {
     try {
       const { id } = params
-      
+
       // Validate UUID format
       const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
       if (!uuidRegex.test(id)) {
@@ -440,7 +440,7 @@ export const articleRoutes = new Elysia({ prefix: '/articles' })
 
       // Check authentication
       const { data: { user }, error: authError } = await supabase.auth.getUser()
-      
+
       if (authError || !user) {
         set.status = 401
         return { error: 'Authentication required' }
@@ -480,7 +480,7 @@ export const articleRoutes = new Elysia({ prefix: '/articles' })
         return { error: 'Failed to delete article: ' + deleteError.message }
       }
 
-      return { 
+      return {
         message: 'Article deleted successfully',
         deleted_article: {
           id,

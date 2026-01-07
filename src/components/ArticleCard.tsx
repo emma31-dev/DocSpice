@@ -46,7 +46,7 @@ export const ArticleCard = memo(function ArticleCard({ article }: ArticleCardPro
     ((article as unknown as { images?: ImageLink[] }).images && (article as unknown as { images?: ImageLink[] }).images![0]) ||
     null
   ) as ImageLink | null
-  
+
   // Format the date
   const formattedDate = new Date(article.created_at).toLocaleDateString('en-US', {
     year: 'numeric',
@@ -55,7 +55,7 @@ export const ArticleCard = memo(function ArticleCard({ article }: ArticleCardPro
   })
 
   // Truncate body text for preview (optimized for performance)
-  const previewText = article.body.length > 150 
+  const previewText = article.body.length > 150
     ? `${article.body.substring(0, 150)}...`
     : article.body
 
@@ -84,14 +84,14 @@ export const ArticleCard = memo(function ArticleCard({ article }: ArticleCardPro
             </div>
           </div>
         )}
-        
+
         {/* Creator overlay (bottom-left on image) */}
         {featuredImage && (
           <div className="absolute left-3 bottom-3 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-medium text-gray-700 flex items-center gap-2">
             <div className="w-6 h-6 rounded-full bg-linear-to-br from-blue-500 to-sky-400 text-white flex items-center justify-center text-xs font-semibold">
-              {(article.author?.user_name || (article.created_by ? article.created_by.slice(0,8) : undefined) || article.author_email)?.charAt(0).toUpperCase() || 'U'}
+              {(article.author?.user_name || (article.created_by ? article.created_by.slice(0, 8) : undefined) || article.author_email)?.charAt(0).toUpperCase() || 'U'}
             </div>
-            <span className="truncate max-w-40">{article.author?.user_name || (article.created_by ? article.created_by.slice(0,8) : undefined) || article.author_email?.split('@')[0] || 'Anonymous'}</span>
+            <span className="truncate max-w-40">{article.author?.user_name || (article.created_by ? article.created_by.slice(0, 8) : undefined) || article.author_email?.split('@')[0] || 'Anonymous'}</span>
           </div>
         )}
 
@@ -116,26 +116,26 @@ export const ArticleCard = memo(function ArticleCard({ article }: ArticleCardPro
             {article.title}
           </Link>
         </h3>
-        
+
         <p className="text-gray-600 text-sm line-clamp-3 mb-4 leading-relaxed">
           {previewText}
         </p>
-        
+
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-linear-to-br from-blue-500 to-sky-400 rounded-full flex items-center justify-center text-white text-sm font-semibold shrink-0">
-              {(article.author?.user_name || (article.created_by ? article.created_by.slice(0,8) : undefined) || article.author_email)?.charAt(0).toUpperCase() || 'U'}
+              {(article.author?.user_name || (article.created_by ? article.created_by.slice(0, 8) : undefined) || article.author_email)?.charAt(0).toUpperCase() || 'U'}
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-sm font-medium text-gray-800 truncate">
-                {article.author?.user_name || (article.created_by ? article.created_by.slice(0,8) : undefined) || article.author_email?.split('@')[0] || 'Anonymous'}
+                {article.author?.user_name || (article.created_by ? article.created_by.slice(0, 8) : undefined) || article.author_email?.split('@')[0] || 'Anonymous'}
               </p>
               <time dateTime={article.created_at} className="text-xs text-gray-500">
                 {formattedDate}
               </time>
             </div>
           </div>
-          
+
           <Link
             href={`/article/${article.id}`}
             className="text-blue-600 hover:text-blue-700 font-medium text-sm transition-colors hover:underline shrink-0 ml-2"
@@ -179,12 +179,12 @@ export function ArticleCardSkeleton() {
 }
 
 // Grid component for optimal layout
-export function ArticleGrid({ 
-  articles, 
-  loading = false 
-}: { 
+export function ArticleGrid({
+  articles,
+  loading = false
+}: {
   articles: Article[]
-  loading?: boolean 
+  loading?: boolean
 }) {
   if (loading) {
     return (
@@ -199,8 +199,8 @@ export function ArticleGrid({
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
       {articles.map((article, index) => (
-        <div 
-          key={article.id} 
+        <div
+          key={article.id}
           className={`animate-fade-in-up animate-stagger-${Math.min(index + 1, 6)}`}
         >
           <ArticleCard article={article} />
